@@ -20,6 +20,17 @@ type UiState =
   | "quota_exceeded"
   | "error";
 
+const STATE_COPY: Record<UiState, { title: string; body: string; action: string }> = {
+  idle: { title: "준비 완료", body: "위치를 확인하고 추천 받기를 눌러 주세요.", action: "추천 받기" },
+  need_location: { title: "위치 권한 필요", body: "위치 권한이 있어야 주변 추천이 가능해요.", action: "위치 확인" },
+  loading: { title: "추천 계산 중", body: "거리/시간대/랜덤 요소를 조합하는 중이에요.", action: "잠시만 기다려 주세요" },
+  ready: { title: "추천 완료", body: "카드를 선택하면 지도 포커스가 이동해요.", action: "다시 추천" },
+  empty: { title: "결과 없음", body: "반경을 넓히거나 탐험 추천으로 바꿔 보세요.", action: "조건 조정" },
+  unsupported: { title: "미지원 지역", body: "현재 국가 코드에서 서비스를 지원하지 않아요.", action: "국가 변경" },
+  quota_exceeded: { title: "오늘 한도 종료", body: "오늘 무료 추천 한도를 모두 사용했어요.", action: "내일 다시" },
+  error: { title: "네트워크 오류", body: "연결 상태를 확인하고 다시 시도해 주세요.", action: "다시 시도" },
+};
+
 function getSessionId(): string {
   const key = "meal_reco_session_id";
   const existing = globalThis.localStorage?.getItem(key);
@@ -44,7 +55,6 @@ export default function Page() {
   const [radius, setRadius] = useState<number>(1000);
   const [randomness, setRandomness] = useState<RandomnessLevel>("balanced");
   const [state, setState] = useState<UiState>("need_location");
-  const [statusMessage, setStatusMessage] = useState<string>("위치 확인 후 추천을 시작해 주세요.");
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [items, setItems] = useState<RecommendationItem[]>([]);
   const [remaining, setRemaining] = useState<number | null>(null);
@@ -59,7 +69,8 @@ export default function Page() {
   }, [items, selectedPlaceId]);
 
   const loading = state === "loading";
-  const disabled = loading || !position;
+  const canRequest = Boolean(position) && !loading;
+  const stateCopy = STATE_COPY[state];
 
   useEffect(() => {
     if (!position) return;
@@ -69,9 +80,8 @@ export default function Page() {
       .then((data) => {
         setRemaining(data.remaining_daily_quota);
         if (!data.supported) {
-          setState("unsupported");
-          setStatusMessage("현재 선택한 국가는 지원되지 않아요.");
           setItems([]);
+          setState("unsupported");
         }
       })
       .catch(() => undefined);
@@ -80,31 +90,28 @@ export default function Page() {
   const resolvePosition = () => {
     if (!navigator.geolocation) {
       setState("error");
-      setStatusMessage("브라우저가 위치 정보를 지원하지 않아요.");
       return;
     }
 
     setState("loading");
-    setStatusMessage("현재 위치를 확인하고 있어요...");
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         setState("idle");
-        setStatusMessage("위치 확인 완료. 추천 받기를 눌러 주세요.");
       },
-      () => {
-        setState("need_location");
-        setStatusMessage("위치 권한이 필요해요. 권한을 허용하거나 브라우저 설정을 확인해 주세요.");
-      },
+      () => setState("need_location"),
       { enableHighAccuracy: false, maximumAge: 30000, timeout: 8000 },
     );
   };
 
   const fetchRecommendations = async () => {
-    if (!position) return;
+    if (!position) {
+      setState("need_location");
+      return;
+    }
+
     setState("loading");
-    setStatusMessage("추천을 계산하고 있어요...");
 
     try {
       const response = await fetch("/api/recommendations", {
@@ -125,7 +132,7 @@ export default function Page() {
 
       const data = (await response.json()) as RecommendationResponse | { error: string };
       if (!response.ok || "error" in data) {
-        throw new Error("추천 요청에 실패했어요.");
+        throw new Error("recommendation failed");
       }
 
       setRemaining(data.remaining_daily_quota);
@@ -133,27 +140,19 @@ export default function Page() {
       if (data.status === "quota_exceeded") {
         setItems([]);
         setState("quota_exceeded");
-        setStatusMessage("오늘 무료 추천 한도를 모두 사용했어요.");
         return;
       }
+
       if (data.status === "unsupported_region") {
         setItems([]);
         setState("unsupported");
-        setStatusMessage("현재 지역은 지원되지 않아요.");
         return;
       }
 
       setItems(data.recommendations);
       setRecentShown(data.recommendations.map((item) => item.place_id).slice(0, 20));
       setSelectedPlaceId(data.recommendations[0]?.place_id ?? null);
-
-      if (data.recommendations.length === 0) {
-        setState("empty");
-        setStatusMessage("조건에 맞는 결과를 찾지 못했어요. 반경이나 필터를 조정해 주세요.");
-      } else {
-        setState("ready");
-        setStatusMessage("추천 결과를 확인해 보세요.");
-      }
+      setState(data.recommendations.length > 0 ? "ready" : "empty");
 
       await fetch("/api/events", {
         method: "POST",
@@ -168,16 +167,13 @@ export default function Page() {
       });
     } catch {
       setState("error");
-      setStatusMessage("네트워크 또는 서버 오류가 발생했어요.");
     }
   };
 
   const onExclude = (placeId: string) => {
     setExcluded((prev) => Array.from(new Set([...prev, placeId])));
     setItems((prev) => prev.filter((item) => item.place_id !== placeId));
-    if (selectedPlaceId === placeId) {
-      setSelectedPlaceId(null);
-    }
+    if (selectedPlaceId === placeId) setSelectedPlaceId(null);
 
     fetch("/api/events", {
       method: "POST",
@@ -202,128 +198,142 @@ export default function Page() {
   };
 
   return (
-    <main>
-      <section className="card hero">
-        <h1 className="title">점메추 / 저메추</h1>
-        <p className="subtitle">지도 기반 익명 추천 MVP</p>
-
-        <div className="toolbar">
-          <button className={mode === "lunch" ? "primary" : ""} onClick={() => setMode("lunch")}>
-            점메추
-          </button>
-          <button className={mode === "dinner" ? "primary" : ""} onClick={() => setMode("dinner")}>
-            저메추
-          </button>
-
-          <select value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
-            <option value={500}>500m</option>
-            <option value={1000}>1km</option>
-            <option value={3000}>3km</option>
-          </select>
-
-          <select value={randomness} onChange={(e) => setRandomness(e.target.value as RandomnessLevel)}>
-            <option value="stable">안정 추천</option>
-            <option value="balanced">균형 추천</option>
-            <option value="explore">탐험 추천</option>
-          </select>
-
-          <input
-            aria-label="country-code"
-            className="country"
-            maxLength={2}
-            value={countryCode}
-            onChange={(e) => setCountryCode(e.target.value.toUpperCase())}
-            placeholder="KR"
-          />
-
-          <button onClick={resolvePosition}>위치 확인</button>
-          <button className="primary" disabled={disabled} onClick={fetchRecommendations}>
-            {loading ? "추천 중..." : "추천 받기"}
-          </button>
+    <main className="app-shell">
+      <header className="topbar">
+        <div className="brand">
+          <span className="brand-mark">✕</span>
+          <strong>점메추</strong>
         </div>
+        <nav className="top-links">
+          <span>익명 모드</span>
+          <span>무료 한도: {remaining ?? "-"}</span>
+        </nav>
+      </header>
 
-        <div className="toolbar compact">
-          <span className="pill">
-            위치: {position ? `${position.lat.toFixed(5)}, ${position.lng.toFixed(5)}` : "미확인"}
-          </span>
-          <span className="pill">국가: {countryCode || "-"}</span>
-          <span className="pill">남은 무료 추천: {remaining ?? "-"}</span>
+      <section className="hero">
+        <div className="hero-overlay" />
+        <div className="hero-content">
+          <p className="badge">DISCOVER LOCAL GEMS</p>
+          <h1>
+            <span>점메추?</span>
+            <span>저메추?</span>
+          </h1>
+          <p className="hero-copy">지금 주변의 실제 가게 데이터를 기반으로, 오늘의 메뉴 고민을 빠르게 끝내보세요.</p>
+
+          <div className="hero-cta">
+            <button className="cta-main" onClick={resolvePosition}>
+              내 위치 허용하기
+            </button>
+            <div className="hero-subrow">
+              <label>
+                국가
+                <input value={countryCode} maxLength={2} onChange={(e) => setCountryCode(e.target.value.toUpperCase())} />
+              </label>
+              <label>
+                반경
+                <select value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
+                  <option value={500}>500m</option>
+                  <option value={1000}>1km</option>
+                  <option value={3000}>3km</option>
+                </select>
+              </label>
+              <label>
+                무드
+                <select value={randomness} onChange={(e) => setRandomness(e.target.value as RandomnessLevel)}>
+                  <option value="stable">안정</option>
+                  <option value="balanced">균형</option>
+                  <option value="explore">탐험</option>
+                </select>
+              </label>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="map-layout">
-        <article className="card map-panel">
-          <div className="row panel-head">
-            <h2>지도</h2>
+      <section className="meal-chooser">
+        <button className={`meal-card ${mode === "lunch" ? "active" : ""}`} onClick={() => setMode("lunch")}>
+          <p>추천</p>
+          <h3>LUNCH / 점메추</h3>
+          <span>가볍고 빠른 점심 추천</span>
+        </button>
+        <button className={`meal-card ${mode === "dinner" ? "active" : ""}`} onClick={() => setMode("dinner")}>
+          <p>추천</p>
+          <h3>DINNER / 저메추</h3>
+          <span>분위기 있는 저녁 추천</span>
+        </button>
+        <button className="find-btn" disabled={!canRequest} onClick={fetchRecommendations}>
+          {loading ? "추천 중..." : "추천 받기"}
+        </button>
+      </section>
+
+      <section className="content-grid">
+        <article className="map-pane">
+          <div className="pane-head">
+            <h2>Map Preview</h2>
             {selectedItem ? (
               <a href={selectedItem.directions_url} target="_blank" rel="noreferrer">
-                <button onClick={() => onDirections(selectedItem)}>Google 지도 열기</button>
+                <button onClick={() => onDirections(selectedItem)}>Google Maps</button>
               </a>
             ) : null}
           </div>
 
           {selectedItem ? (
-            <iframe
-              title="recommendation-map"
-              src={mapEmbedUrl(selectedItem.lat, selectedItem.lng)}
-              className="map-frame"
-              loading="lazy"
-            />
+            <iframe title="selected-place-map" className="map-frame" src={mapEmbedUrl(selectedItem.lat, selectedItem.lng)} loading="lazy" />
           ) : position ? (
-            <iframe title="current-location-map" src={mapEmbedUrl(position.lat, position.lng)} className="map-frame" loading="lazy" />
+            <iframe title="current-position-map" className="map-frame" src={mapEmbedUrl(position.lat, position.lng)} loading="lazy" />
           ) : (
-            <div className="map-empty">위치를 확인하면 지도가 표시됩니다.</div>
+            <div className="map-empty">위치 확인 후 지도와 추천이 표시됩니다.</div>
           )}
 
-          {selectedItem ? (
-            <p className="map-caption">
-              선택된 장소: <strong>{selectedItem.name}</strong> ({selectedItem.distance_m}m)
-            </p>
-          ) : null}
-        </article>
-
-        <article className="card status-panel">
-          <h2>상태</h2>
-          <p>{statusMessage}</p>
-
-          {state === "need_location" ? <p className="hint">위치 권한 허용 후 다시 시도해 주세요.</p> : null}
-          {state === "unsupported" ? <p className="hint">미지원 지역입니다. 다른 국가 코드로 테스트할 수 있어요.</p> : null}
-          {state === "quota_exceeded" ? <p className="hint">오늘 한도 소진. 내일 다시 시도해 주세요.</p> : null}
-          {state === "empty" ? <p className="hint">반경을 3km로 늘리거나 랜덤 강도를 탐험으로 바꿔 보세요.</p> : null}
-          {state === "error" ? <p className="hint">일시 오류일 수 있어요. 잠시 후 재시도해 주세요.</p> : null}
-
-          <div className="toolbar compact">
-            <button onClick={resolvePosition}>위치 재확인</button>
-            <button className="primary" disabled={disabled} onClick={fetchRecommendations}>
-              다시 추천
-            </button>
+          <div className="map-meta">
+            <span>위치: {position ? `${position.lat.toFixed(4)}, ${position.lng.toFixed(4)}` : "미확인"}</span>
+            <span>모드: {mode}</span>
           </div>
         </article>
-      </section>
 
-      <section className="items grid">
-        {items.map((item) => (
-          <article
-            key={item.place_id}
-            className={`card item ${selectedItem?.place_id === item.place_id ? "active" : ""}`}
-            onClick={() => setSelectedPlaceId(item.place_id)}
-          >
-            <div className="row">
-              <h3>{item.name}</h3>
-              <span className="pill">{item.distance_m}m</span>
+        <aside className="side-pane">
+          <section className={`state-card state-${state}`}>
+            <p className="state-kicker">STATUS</p>
+            <h3>{stateCopy.title}</h3>
+            <p>{stateCopy.body}</p>
+            <div className="state-actions">
+              <button onClick={resolvePosition}>위치 확인</button>
+              <button disabled={!canRequest} onClick={fetchRecommendations}>
+                {stateCopy.action}
+              </button>
             </div>
-            <p>
-              카테고리: {item.category} | 가격: {"₩".repeat(item.price_level)} | 평점: {item.rating}
-            </p>
-            <p>{item.why.join(" · ") || "추천 이유 데이터를 수집 중이에요."}</p>
-            <div className="toolbar compact">
-              <a href={item.directions_url} target="_blank" rel="noreferrer">
-                <button onClick={() => onDirections(item)}>길찾기</button>
-              </a>
-              <button onClick={() => onExclude(item.place_id)}>제외</button>
-            </div>
-          </article>
-        ))}
+          </section>
+
+          <section className="result-head">
+            <h3>Top Picks</h3>
+            <span>{items.length} spots</span>
+          </section>
+
+          <section className="result-list">
+            {items.map((item, idx) => (
+              <article
+                key={item.place_id}
+                className={`result-card ${selectedItem?.place_id === item.place_id ? "active" : ""}`}
+                onClick={() => setSelectedPlaceId(item.place_id)}
+              >
+                <div className="result-title-row">
+                  <strong>{item.name}</strong>
+                  {idx === 0 ? <span className="rank">#1 MATCH</span> : null}
+                </div>
+                <p className="result-meta">
+                  {item.distance_m}m · {"₩".repeat(item.price_level)} · ★{item.rating}
+                </p>
+                <p className="result-reason">{item.why.join(" · ") || "추천 이유를 계산 중입니다."}</p>
+                <div className="result-actions">
+                  <a href={item.directions_url} target="_blank" rel="noreferrer">
+                    <button onClick={() => onDirections(item)}>길찾기</button>
+                  </a>
+                  <button onClick={() => onExclude(item.place_id)}>제외</button>
+                </div>
+              </article>
+            ))}
+          </section>
+        </aside>
       </section>
     </main>
   );
