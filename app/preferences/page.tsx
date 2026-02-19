@@ -27,13 +27,13 @@ export default function PreferencesPage() {
 
   return (
     <main className="flow-page preferences">
-      <section className="headline">
+      <section className="headline section-shell">
         <p className="chip">MAKE A CHOICE</p>
         <h1>What are we eating today?</h1>
         <p>점심/저녁 타입과 추천 무드를 고르면 결과를 바로 만들어 드려요.</p>
       </section>
 
-      <section className="meal-grid">
+      <section className="meal-grid section-shell">
         <button className={`meal-block ${mode === "lunch" ? "active" : ""}`} onClick={() => setMode("lunch")}>
           <strong>LUNCH / 점메추</strong>
           <span>Quick & energizing</span>
@@ -44,7 +44,7 @@ export default function PreferencesPage() {
         </button>
       </section>
 
-      <section className="controls">
+      <section className="controls section-shell">
         <label>
           반경
           <select value={radius} onChange={(e) => setRadius(Number(e.target.value))}>

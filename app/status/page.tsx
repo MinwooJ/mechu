@@ -46,7 +46,7 @@ export default async function StatusPage({
 
   return (
     <main className="flow-page status">
-      <section className="status-grid">
+      <section className="status-grid section-shell">
         <article className="status-card">
           <p className="chip">STATUS</p>
           <h1>{content.title}</h1>

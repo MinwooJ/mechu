@@ -38,7 +38,7 @@ export default function OnboardingPage() {
 
   return (
     <main className="flow-page onboard">
-      <section className="onboard-hero">
+      <section className="onboard-hero section-shell">
         <p className="chip">DISCOVER LOCAL GEMS</p>
         <h1>
           <span>점메추?</span>
@@ -47,7 +47,7 @@ export default function OnboardingPage() {
         <p>지금 당신 주변의 가게 데이터를 기반으로 오늘의 메뉴 고민을 빠르게 해결해 드릴게요.</p>
       </section>
 
-      <section className="onboard-card">
+      <section className="onboard-card section-shell">
         <button className="btn-primary" onClick={allowLocation} disabled={loading}>
           {loading ? "위치 확인 중..." : "내 위치 허용하기"}
         </button>

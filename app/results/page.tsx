@@ -123,7 +123,7 @@ export default function ResultsPage() {
 
   return (
     <main className="flow-page results">
-      <header className="result-top">
+      <header className="result-top section-shell">
         <h1>Top Picks</h1>
         <div className="result-actions-top">
           <button className="btn-ghost" onClick={goBack}>조건 변경</button>
@@ -131,7 +131,7 @@ export default function ResultsPage() {
         </div>
       </header>
 
-      <section className="result-layout">
+      <section className="result-layout section-shell">
         <article className="map-panel">
           {selected ? (
             <iframe title="selected-place" className="map-frame" src={mapEmbedUrl(selected.lat, selected.lng)} loading="lazy" />
