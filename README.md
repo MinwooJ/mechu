@@ -28,6 +28,9 @@ Open: <http://127.0.0.1:3000>
 ## Env
 Copy `.env.local.example` to `.env.local`.
 
+`GOOGLE_MAPS_API_KEY`를 설정하면 추천 결과에 실제 가게명이 표시됩니다.
+키가 없거나 Places 호출이 실패하면 mock 데이터(`... spot N`)로 자동 fallback 됩니다.
+
 ## Cloudflare deployment
 
 1. Authenticate Wrangler

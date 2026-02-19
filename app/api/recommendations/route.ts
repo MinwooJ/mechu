@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     if (typeof body?.lat !== "number" || typeof body?.lng !== "number" || !body?.mode) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
     }
-    return NextResponse.json(getRecommendations(body));
+    return NextResponse.json(await getRecommendations(body));
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }

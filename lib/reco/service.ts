@@ -12,10 +12,25 @@ import type {
 
 type Candidate = RecommendationItem & { score: number };
 
+type GoogleNearbySearchResponse = {
+  results?: Array<{
+    place_id?: string;
+    name?: string;
+    geometry?: { location?: { lat?: number; lng?: number } };
+    types?: string[];
+    price_level?: number;
+    rating?: number;
+    opening_hours?: { open_now?: boolean };
+  }>;
+};
+
 const DEFAULT_LIMIT = Number(process.env.RECO_DEFAULT_LIMIT ?? "8");
 const MAX_LIMIT = Number(process.env.RECO_MAX_LIMIT ?? "20");
 const DAILY_LIMIT = Number(process.env.RECO_DAILY_LIMIT ?? "1000");
 const EVENTS_LOG_PATH = process.env.RECO_EVENTS_LOG_PATH ?? "./data/reco/events.jsonl";
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY ?? "";
+const GOOGLE_PLACES_BASE = "https://maps.googleapis.com/maps/api/place/nearbysearch/json";
+
 const UNSUPPORTED = new Set(
   (process.env.RECO_UNSUPPORTED_COUNTRIES ?? "")
     .split(",")
@@ -97,6 +112,25 @@ function offsetLatLng(baseLat: number, baseLng: number, angle: number, meters: n
   return { lat: baseLat + deltaLat, lng: baseLng + deltaLng };
 }
 
+function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const r = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return Math.round(2 * r * Math.asin(Math.sqrt(a)));
+}
+
+function mapGoogleCategory(types: string[] | undefined): string {
+  if (!types || types.length === 0) return "restaurant";
+  if (types.includes("cafe")) return "cafe";
+  if (types.includes("meal_takeaway") || types.includes("fast_food")) return "fast_food";
+  if (types.includes("bar") || types.includes("night_club")) return "western";
+  if (types.includes("restaurant")) return "restaurant";
+  return types[0];
+}
+
 function buildReasons(candidate: Candidate, distScore: number, modeScore: number): string[] {
   const reasons: string[] = [];
   if (distScore > 0.75) reasons.push("Near your location");
@@ -106,7 +140,7 @@ function buildReasons(candidate: Candidate, distScore: number, modeScore: number
   return reasons.slice(0, 3);
 }
 
-function buildCandidates(req: Required<RecommendationRequest>): Candidate[] {
+function buildMockCandidates(req: Required<RecommendationRequest>): Candidate[] {
   const categories = ["korean", "japanese", "chinese", "western", "cafe", "fast_food", "bbq", "noodle"];
   const seedInput = `${req.lat}:${req.lng}:${req.radius_m}:${req.mode}`;
   const rnd = mulberry32(hashSeed(seedInput));
@@ -130,6 +164,61 @@ function buildCandidates(req: Required<RecommendationRequest>): Candidate[] {
       open_now: rnd() > 0.25,
       why: [],
       directions_url: "",
+      score: 0,
+    });
+  }
+
+  return out;
+}
+
+async function fetchGoogleCandidates(req: Required<RecommendationRequest>): Promise<Candidate[]> {
+  if (!GOOGLE_MAPS_API_KEY) {
+    return [];
+  }
+
+  const params = new URLSearchParams({
+    key: GOOGLE_MAPS_API_KEY,
+    location: `${req.lat},${req.lng}`,
+    radius: String(req.radius_m),
+    type: "restaurant",
+    language: "ko",
+  });
+
+  if (req.open_now) {
+    params.set("opennow", "true");
+  }
+
+  const response = await fetch(`${GOOGLE_PLACES_BASE}?${params.toString()}`);
+  if (!response.ok) {
+    return [];
+  }
+
+  const payload = (await response.json()) as GoogleNearbySearchResponse;
+  const results = payload.results ?? [];
+  const out: Candidate[] = [];
+
+  for (const r of results) {
+    const lat = r.geometry?.location?.lat;
+    const lng = r.geometry?.location?.lng;
+    const placeId = r.place_id;
+    const name = r.name;
+    if (!lat || !lng || !placeId || !name) {
+      continue;
+    }
+
+    const distance = haversineMeters(req.lat, req.lng, lat, lng);
+    out.push({
+      place_id: placeId,
+      name,
+      lat,
+      lng,
+      distance_m: distance,
+      category: mapGoogleCategory(r.types),
+      price_level: Math.max(1, Math.min(r.price_level ?? 2, 4)),
+      rating: Math.max(0, Math.min(r.rating ?? 4, 5)),
+      open_now: r.opening_hours?.open_now ?? true,
+      why: [],
+      directions_url: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`,
       score: 0,
     });
   }
@@ -174,7 +263,7 @@ export function getAvailability(countryCode?: string | null): AvailabilityRespon
   };
 }
 
-export function getRecommendations(input: RecommendationRequest): RecommendationResponse {
+export async function getRecommendations(input: RecommendationRequest): Promise<RecommendationResponse> {
   const req = sanitizeRequest(input);
   if (!isSupportedCountry(req.country_code)) {
     return {
@@ -195,7 +284,11 @@ export function getRecommendations(input: RecommendationRequest): Recommendation
     };
   }
 
-  const candidates = buildCandidates(req);
+  let candidates = await fetchGoogleCandidates(req);
+  if (candidates.length === 0) {
+    candidates = buildMockCandidates(req);
+  }
+
   const excluded = new Set(req.exclude_place_ids);
   const recent = new Set(req.recently_shown_place_ids);
   const catFilter = new Set(req.categories);
