@@ -1,4 +1,5 @@
 import Link from "next/link";
+import FlowHeader from "@/app/components/flow-header";
 
 const COPY = {
   need_location: {
@@ -13,15 +14,9 @@ const COPY = {
     primary: "설정 다시하기",
     href: "/preferences",
   },
-  quota_exceeded: {
-    title: "오늘 한도를 모두 사용했어요",
-    body: "무료 추천 한도를 소진했어요. 내일 다시 시도해 주세요.",
-    primary: "설정 화면으로",
-    href: "/preferences",
-  },
   empty: {
-    title: "조건에 맞는 가게가 없어요",
-    body: "반경을 넓히거나 무드를 탐험으로 바꾸면 더 많은 결과를 볼 수 있어요.",
+    title: "반경 내에 음식점이 없습니다.",
+    body: "검색 조건 기준으로 반경 안에서 조회된 식당이 없어요. 반경을 넓히거나 위치를 바꿔 다시 시도해 주세요.",
     primary: "조건 조정",
     href: "/preferences",
   },
@@ -46,6 +41,7 @@ export default async function StatusPage({
 
   return (
     <main className="flow-page status">
+      <FlowHeader />
       <section className="status-grid section-shell">
         <article className="status-card">
           <p className="chip">STATUS</p>

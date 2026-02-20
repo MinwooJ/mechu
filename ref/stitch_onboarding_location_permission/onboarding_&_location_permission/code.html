@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MatZip - Onboarding</title>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;500;700;900&amp;family=Noto+Sans+KR:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f48c25",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#221910",
+                        "surface-dark": "#2d241b",
+                    },
+                    fontFamily: {
+                        "display": ["Epilogue", "Noto Sans KR", "sans-serif"],
+                        "sans": ["Epilogue", "Noto Sans KR", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 overflow-x-hidden antialiased selection:bg-primary selection:text-white">
+<div class="relative min-h-screen flex flex-col">
+<!-- Header -->
+<header class="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 md:px-10 lg:px-20">
+<div class="flex items-center gap-3">
+<div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-background-dark">
+<span class="material-symbols-outlined !text-2xl">restaurant_menu</span>
+</div>
+<h2 class="text-xl font-black tracking-tight text-white dark:text-white">MatZip</h2>
+</div>
+<button class="group flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm transition-all hover:bg-white/20">
+<span>Skip Intro</span>
+<span class="material-symbols-outlined text-lg transition-transform group-hover:translate-x-0.5">arrow_forward</span>
+</button>
+</header>
+<!-- Main Content / Hero -->
+<main class="relative flex flex-grow items-center justify-center overflow-hidden">
+<!-- Background Image with Overlay -->
+<div class="absolute inset-0 z-0">
+<img alt="Blurred busy night street market in Seoul with neon signs" class="h-full w-full object-cover opacity-60 blur-sm" data-alt="Blurred busy night street market in Seoul with neon signs" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBg5VgICl9V4I1TuX_0B4Y5BcVsT82Jj0MIWhdW1g4lFi7l1QHynKmxmjeAMfDbX43uIb2VRrgoq4ohoAA8P9le_gt8wQrByBx5Ml-hiX1hdlMTAViAOWXNSYFuw_9frSk4Dge-BqHlYJ4dnyDJNupEjuuxcyoJAQ5qGX_0e5cZdGTrgdvKjdgrSllBfsFgZL4KcVQV0WoVfixS6OTRjzIs4RO3b6rAe56fbfu3-2fCspENBaZJ1kW-2gk8T6JanU0zTHKDXhHi5yzS"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark via-background-dark/80 to-background-dark/40 mix-blend-multiply"></div>
+<div class="absolute inset-0 bg-gradient-to-b from-background-dark/60 via-transparent to-background-dark"></div>
+</div>
+<!-- Content Container -->
+<div class="layout-content-container relative z-10 flex w-full max-w-[960px] flex-col items-center justify-center gap-12 px-6 py-20 text-center md:gap-16">
+<!-- Hero Text -->
+<div class="flex flex-col items-center gap-6">
+<div class="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 backdrop-blur-md">
+<span class="flex h-2 w-2 rounded-full bg-primary animate-pulse mr-2"></span>
+<span class="text-xs font-bold uppercase tracking-widest text-primary">Discover Local Gems</span>
+</div>
+<h1 class="font-black leading-[1.1] tracking-tighter text-white text-6xl md:text-7xl lg:text-8xl">
+<span class="block text-primary drop-shadow-2xl">점메추?</span>
+<span class="block drop-shadow-2xl">저메추?</span>
+</h1>
+<p class="max-w-[600px] text-lg font-normal leading-relaxed text-slate-300 md:text-xl md:font-light">
+                        지금 당신 주변의 숨겨진 <span class="text-white font-medium border-b border-primary/50">찐맛집</span>을 찾아드릴게요.<br class="hidden md:block"/> 
+                        오늘의 메뉴 고민, 저희가 해결해 드립니다.
+                    </p>
+</div>
+<!-- Location Action Card -->
+<div class="w-full max-w-md">
+<div class="group relative flex flex-col gap-6 overflow-hidden rounded-2xl bg-surface-dark/60 p-1 backdrop-blur-xl ring-1 ring-white/10 transition-all hover:ring-primary/50 hover:bg-surface-dark/80">
+<div class="flex flex-col items-center justify-center gap-8 rounded-xl bg-white/5 p-8 px-6 py-10">
+<div class="relative">
+<div class="absolute -inset-4 rounded-full bg-primary/20 blur-xl"></div>
+<div class="relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary to-orange-600 shadow-lg shadow-orange-900/50">
+<span class="material-symbols-outlined !text-4xl text-white">near_me</span>
+</div>
+<div class="absolute right-0 top-0 flex h-8 w-8 items-center justify-center rounded-full bg-white text-primary shadow-lg">
+<span class="material-symbols-outlined !text-lg">question_mark</span>
+</div>
+</div>
+<div class="flex w-full flex-col gap-3">
+<button class="relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-xl bg-primary px-6 py-4 text-base font-bold text-background-dark shadow-lg shadow-primary/25 transition-all hover:bg-orange-400 hover:shadow-primary/40 active:scale-[0.98]">
+<span class="relative z-10">내 위치 허용하기</span>
+<span class="material-symbols-outlined relative z-10 !text-xl">arrow_forward</span>
+</button>
+<button class="flex w-full items-center justify-center rounded-xl px-6 py-3 text-sm font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-white">
+                                    직접 위치 입력하기
+                                </button>
+</div>
+</div>
+</div>
+<p class="mt-6 flex items-center justify-center gap-2 text-xs text-slate-500">
+<span class="material-symbols-outlined !text-sm">lock</span>
+                        위치 정보는 맛집 추천 목적으로만 사용됩니다.
+                    </p>
+</div>
+</div>
+<!-- Floating Decorative Elements -->
+<div class="absolute bottom-10 left-10 hidden lg:block">
+<div class="flex items-center gap-3 rounded-lg bg-surface-dark/80 p-3 backdrop-blur-md border border-white/5">
+<div class="h-10 w-10 overflow-hidden rounded-md bg-slate-700">
+<img alt="Bibimbap bowl" class="h-full w-full object-cover" data-alt="Close up of delicious Bibimbap bowl" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMWGTxzurrn4havhGUDYV_gxJ9ubm8K_t8zOB80jXO4npSxLJ4ypVdPu3oV1_aTqHxjHcSfq2CysZlS2fHFIL4yigw4MHTKN3oWU_mxNQQ5QlXm7uXaWJAqMNqFUyt3c5JD2edibHkAYRTWannea0Y0YGg95gjT7UX7a8llinPAd60ZsO9qK3BZw9Dr-owBwVjlD2sUPaIgt7bxx3xUJBqxdiCkcRy6abLc645lKoZm8pvED8vLxhkeroDHr6NFdmOnk4tv5SVcLpe"/>
+</div>
+<div class="flex flex-col">
+<span class="text-xs font-bold text-white">Trending Now</span>
+<span class="text-[10px] text-primary">Bibimbap in Gangnam</span>
+</div>
+</div>
+</div>
+<div class="absolute top-32 right-10 hidden lg:block">
+<div class="flex items-center gap-3 rounded-lg bg-surface-dark/80 p-3 backdrop-blur-md border border-white/5">
+<div class="flex flex-col text-right">
+<span class="text-xs font-bold text-white">New Opening</span>
+<span class="text-[10px] text-primary">BBQ Spot in Hongdae</span>
+</div>
+<div class="h-10 w-10 overflow-hidden rounded-md bg-slate-700">
+<img alt="Korean BBQ" class="h-full w-full object-cover" data-alt="Korean BBQ grill close up with meat" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2qiCj-blHJ7K82Cw1k5tJwYhHdhZeBZtnalYkSL46D-H4YjfJHuBQ_1BNXD1hpj9v-EUgT0vZtUedb54eeZStGbvHXrrm_fIp92AvM4S9UgXfdmwDVa8LjJ9af9C3rRHr_u84yipKuIVDS5jeSYX61Q4Me-Jr5vM-9ow4BWPeXR2e7hunLo8iTsSktPnkFjxYUTkEVtQdjqGNx5xct0-5Whztqffgm-UPBfmXyTLlSiBmszY4A3LiZVGa-ZEQOZ6_V1SbE7bvaU_Z"/>
+</div>
+</div>
+</div>
+</main>
+<!-- Minimal Footer -->
+<footer class="absolute bottom-0 w-full z-20 border-t border-white/5 bg-background-dark/80 px-6 py-6 backdrop-blur-sm">
+<div class="layout-content-container mx-auto flex max-w-[960px] flex-col items-center justify-between gap-4 md:flex-row text-xs text-slate-500">
+<p>© 2024 MatZip. All rights reserved.</p>
+<div class="flex gap-6">
+<a class="hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="hover:text-primary transition-colors" href="#">Terms of Service</a>
+<a class="hover:text-primary transition-colors" href="#">Contact</a>
+</div>
+</div>
+</footer>
+</div>
+</body></html>

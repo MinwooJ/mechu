@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NEXT_DISABLE_TURBOPACK=1 next dev -p 3000",
+    "dev": "rm -rf .next && NEXT_DISABLE_TURBOPACK=1 next dev -p 3000",
     "build": "next build",
     "start": "next start -p 3000",
     "lint": "next lint",
@@ -12,12 +12,15 @@
     "deploy": "opennextjs-cloudflare build && wrangler deploy"
   },
   "dependencies": {
+    "leaflet": "^1.9.4",
     "next": "15.5.12",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "react-leaflet": "^5.0.0"
   },
   "devDependencies": {
     "@opennextjs/cloudflare": "1.16.5",
+    "@types/leaflet": "^1.9.21",
     "@types/node": "22.10.7",
     "@types/react": "19.0.8",
     "@types/react-dom": "19.0.3",

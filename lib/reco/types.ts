@@ -21,29 +21,30 @@ export type RecommendationRequest = {
 export type RecommendationItem = {
   place_id: string;
   name: string;
+  address?: string;
+  raw_category?: string;
   lat: number;
   lng: number;
   distance_m: number;
   category: string;
   price_level: number;
   rating: number;
+  review_count?: number;
   open_now: boolean;
   why: string[];
   directions_url: string;
 };
 
 export type RecommendationResponse = {
-  status: "ok" | "quota_exceeded" | "unsupported_region";
+  status: "ok" | "unsupported_region" | "source_error";
   message?: string;
   mode: RecommendMode;
-  remaining_daily_quota: number;
   recommendations: RecommendationItem[];
 };
 
 export type AvailabilityResponse = {
   supported: boolean;
   reason: string | null;
-  remaining_daily_quota: number;
 };
 
 export type RecommendationEvent = {
@@ -51,6 +52,6 @@ export type RecommendationEvent = {
   place_id?: string;
   mode?: RecommendMode;
   session_id?: string;
-  lat?: number;
-  lng?: number;
+  search_country?: string;
+  ip_country?: string;
 };

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>TastyRoad - Status &amp; Error States</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:ital,wght@0,100..900;1,100..900&amp;family=Noto+Sans+KR:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f48c25",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#221910",
+                    },
+                    fontFamily: {
+                        "display": ["Epilogue", "Noto Sans KR", "sans-serif"],
+                        "sans": ["Epilogue", "Noto Sans KR", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for better aesthetic in dark mode */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #221910; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #393028; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #f48c25; 
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display min-h-screen flex flex-col overflow-x-hidden antialiased selection:bg-primary selection:text-white">
+<!-- Top Navigation -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-[#393028] px-6 lg:px-10 py-4 bg-background-light dark:bg-background-dark sticky top-0 z-50">
+<div class="flex items-center gap-4 text-slate-900 dark:text-white">
+<div class="size-8 text-primary">
+<span class="material-symbols-outlined text-3xl">restaurant_menu</span>
+</div>
+<h2 class="text-slate-900 dark:text-white text-xl font-black leading-tight tracking-tight">TastyRoad</h2>
+</div>
+<div class="hidden md:flex flex-1 justify-end gap-8 items-center">
+<nav class="flex items-center gap-9">
+<a class="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-medium leading-normal" href="#">홈</a>
+<a class="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-medium leading-normal" href="#">지도</a>
+<a class="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-medium leading-normal" href="#">리뷰</a>
+<a class="text-slate-900 dark:text-white font-bold text-sm leading-normal border-b-2 border-primary pb-0.5" href="#">마이페이지</a>
+</nav>
+<div class="flex gap-3">
+<button class="flex items-center justify-center overflow-hidden rounded-xl h-10 px-5 bg-transparent border border-slate-300 dark:border-[#393028] text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-[#393028] transition-all text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">로그인</span>
+</button>
+<button class="flex items-center justify-center overflow-hidden rounded-xl h-10 px-5 bg-primary hover:bg-orange-600 transition-colors text-white text-sm font-bold leading-normal tracking-[0.015em] shadow-lg shadow-primary/20">
+<span class="truncate">회원가입</span>
+</button>
+</div>
+</div>
+<div class="md:hidden text-slate-900 dark:text-white">
+<span class="material-symbols-outlined">menu</span>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-grow w-full max-w-[1200px] mx-auto px-4 py-8 lg:py-12">
+<!-- Header Section -->
+<div class="mb-12 flex flex-col gap-3">
+<div class="flex items-center gap-2 text-primary font-bold text-sm uppercase tracking-wider">
+<span class="material-symbols-outlined text-lg">style</span>
+<span>UI Kit Gallery</span>
+</div>
+<h1 class="text-4xl md:text-5xl font-black leading-tight tracking-tight text-slate-900 dark:text-white">
+                Status &amp; Error States
+            </h1>
+<p class="text-slate-500 dark:text-[#baab9c] text-lg font-normal leading-relaxed max-w-2xl">
+                사용자 경험이 중단될 때에도 브랜드의 따뜻한 감성을 잃지 않도록 설계된 상태 메시지 컬렉션입니다.
+            </p>
+</div>
+<!-- Grid of States -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- State 1: Unsupported Region -->
+<article class="flex flex-col bg-white dark:bg-[#2c241b] rounded-2xl overflow-hidden border border-slate-100 dark:border-[#393028] shadow-xl shadow-black/5 dark:shadow-black/20 hover:translate-y-[-4px] transition-transform duration-300">
+<div class="h-64 bg-slate-100 dark:bg-[#332b22] relative flex items-center justify-center p-8 overflow-hidden group">
+<!-- Abstract Map Background Pattern -->
+<div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#f48c25 1px, transparent 1px); background-size: 20px 20px;"></div>
+<!-- Icon Illustration -->
+<div class="relative z-10 size-32 bg-slate-200 dark:bg-[#3f352a] rounded-full flex items-center justify-center shadow-inner">
+<span class="material-symbols-outlined text-6xl text-slate-400 dark:text-[#6a5a4a] group-hover:scale-110 transition-transform duration-500">map</span>
+<div class="absolute -top-2 -right-2 bg-primary text-white p-2 rounded-full border-4 border-white dark:border-[#2c241b]">
+<span class="material-symbols-outlined text-xl">question_mark</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col p-8 flex-1 text-center">
+<h3 class="text-xl font-bold text-slate-900 dark:text-white mb-3">아직 서비스 준비 중이에요</h3>
+<p class="text-slate-500 dark:text-[#baab9c] text-sm leading-relaxed mb-8 flex-1">
+                        현재 이 지역은 맛집 데이터가 부족해요.<br/>다른 지역을 검색해보세요.
+                    </p>
+<button class="w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-[#221910] font-bold hover:bg-primary dark:hover:bg-primary dark:hover:text-white transition-all duration-300">
+<span class="material-symbols-outlined text-lg">location_on</span>
+<span>지역 변경하기</span>
+</button>
+</div>
+</article>
+<!-- State 2: Empty Results -->
+<article class="flex flex-col bg-white dark:bg-[#2c241b] rounded-2xl overflow-hidden border border-slate-100 dark:border-[#393028] shadow-xl shadow-black/5 dark:shadow-black/20 hover:translate-y-[-4px] transition-transform duration-300">
+<div class="h-64 bg-slate-100 dark:bg-[#332b22] relative flex items-center justify-center p-8 overflow-hidden group">
+<!-- Abstract Circles Background -->
+<div class="absolute inset-0 opacity-5">
+<svg height="100%" width="100%">
+<pattern height="40" id="pattern-circles" patternunits="userSpaceOnUse" width="40" x="0" y="0">
+<circle class="text-primary" cx="20" cy="20" fill="currentColor" r="2"></circle>
+</pattern>
+<rect fill="url(#pattern-circles)" height="100%" width="100%"></rect>
+</svg>
+</div>
+<!-- Icon Illustration -->
+<div class="relative z-10 flex flex-col items-center">
+<div class="size-32 rounded-full bg-orange-100 dark:bg-[#3f352a]/50 flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-6xl text-primary/60 group-hover:rotate-12 transition-transform duration-500">ramen_dining</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col p-8 flex-1 text-center">
+<h3 class="text-xl font-bold text-slate-900 dark:text-white mb-3">맛집을 찾지 못했어요</h3>
+<p class="text-slate-500 dark:text-[#baab9c] text-sm leading-relaxed mb-8 flex-1">
+                        설정한 필터 조건에 맞는 식당이 없습니다.<br/>조건을 조금 넓혀볼까요?
+                    </p>
+<button class="w-full h-12 flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-[#4a3f35] text-slate-900 dark:text-white font-bold hover:border-primary hover:text-primary dark:hover:border-primary dark:hover:text-primary transition-all duration-300">
+<span class="material-symbols-outlined text-lg">filter_alt_off</span>
+<span>필터 초기화</span>
+</button>
+</div>
+</article>
+<!-- State 3: Network Error -->
+<article class="flex flex-col bg-white dark:bg-[#2c241b] rounded-2xl overflow-hidden border border-slate-100 dark:border-[#393028] shadow-xl shadow-black/5 dark:shadow-black/20 hover:translate-y-[-4px] transition-transform duration-300">
+<div class="h-64 bg-slate-100 dark:bg-[#332b22] relative flex items-center justify-center p-8 overflow-hidden group">
+<!-- Zig Zag Background Pattern -->
+<div class="absolute inset-0 opacity-5">
+<svg height="100%" width="100%">
+<defs>
+<pattern height="20" id="zigzag" patternunits="userSpaceOnUse" width="20" x="0" y="0">
+<path class="text-primary" d="M0 20L10 0L20 20" fill="none" stroke="currentColor" stroke-width="1"></path>
+</pattern>
+</defs>
+<rect fill="url(#zigzag)" height="100%" width="100%"></rect>
+</svg>
+</div>
+<!-- Icon Illustration -->
+<div class="relative z-10 size-32 bg-slate-200 dark:bg-[#3f352a] rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-6xl text-slate-400 dark:text-[#6a5a4a] group-hover:animate-pulse">wifi_off</span>
+<div class="absolute bottom-0 right-0 bg-red-500 text-white p-2 rounded-full border-4 border-white dark:border-[#2c241b]">
+<span class="material-symbols-outlined text-xl">priority_high</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col p-8 flex-1 text-center">
+<h3 class="text-xl font-bold text-slate-900 dark:text-white mb-3">연결이 불안정해요</h3>
+<p class="text-slate-500 dark:text-[#baab9c] text-sm leading-relaxed mb-8 flex-1">
+                        인터넷 연결 상태를 확인하고 다시 시도해주세요.<br/>맛있는 밥이 기다리고 있어요!
+                    </p>
+<button class="w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-primary text-white font-bold hover:bg-orange-600 shadow-lg shadow-primary/30 transition-all duration-300">
+<span class="material-symbols-outlined text-lg">refresh</span>
+<span>다시 시도</span>
+</button>
+</div>
+</article>
+</div>
+<!-- Full Width Showcase Section -->
+<div class="mt-16 w-full bg-[#181411] rounded-3xl p-8 lg:p-12 relative overflow-hidden border border-[#393028]">
+<div class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/10 to-transparent pointer-events-none"></div>
+<div class="relative z-10 flex flex-col md:flex-row items-center gap-10">
+<div class="flex-1 flex flex-col gap-6">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary w-fit">
+<span class="size-2 rounded-full bg-primary animate-pulse"></span>
+<span class="text-xs font-bold uppercase tracking-wider">Live Preview</span>
+</div>
+<h2 class="text-3xl lg:text-4xl font-black text-white leading-tight">
+                        데이터가 없을 때도<br/>
+<span class="text-primary">친절하게 안내합니다.</span>
+</h2>
+<p class="text-[#baab9c] text-base leading-relaxed max-w-md">
+                        단순한 에러 메시지가 아닙니다. 사용자가 길을 잃지 않도록 돕는 TastyRoad만의 따뜻한 가이드입니다.
+                    </p>
+</div>
+<div class="flex-1 w-full max-w-md">
+<!-- Miniature Mobile View Card -->
+<div class="bg-background-light dark:bg-background-dark border border-slate-200 dark:border-[#393028] rounded-2xl p-6 shadow-2xl flex flex-col items-center text-center">
+<div class="w-16 h-1 rounded-full bg-slate-200 dark:bg-[#393028] mb-8"></div>
+<div class="size-24 rounded-full bg-primary/10 flex items-center justify-center mb-6 text-primary">
+<span class="material-symbols-outlined text-5xl">sentiment_dissatisfied</span>
+</div>
+<h4 class="text-lg font-bold text-slate-900 dark:text-white mb-2">검색 결과가 없네요</h4>
+<p class="text-sm text-slate-500 dark:text-[#baab9c] mb-6">원하시는 조건의 식당을 찾을 수 없어요. 하지만 다른 맛있는 곳들이 아직 많답니다!</p>
+<button class="w-full py-3 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-[#221910] font-bold text-sm">
+                            전체 목록 보기
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="mt-12 border-t border-slate-200 dark:border-[#393028] bg-white dark:bg-[#1a140e] py-12 px-6">
+<div class="max-w-[1200px] mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="flex items-center gap-3">
+<div class="size-6 text-slate-400 dark:text-slate-600">
+<span class="material-symbols-outlined">restaurant</span>
+</div>
+<span class="text-slate-400 dark:text-slate-600 font-bold text-sm">TastyRoad Design System v1.0</span>
+</div>
+<div class="flex gap-6 text-slate-400 dark:text-slate-600 text-sm font-medium">
+<a class="hover:text-primary transition-colors" href="#">Documentation</a>
+<a class="hover:text-primary transition-colors" href="#">Support</a>
+<a class="hover:text-primary transition-colors" href="#">License</a>
+</div>
+</div>
+</footer>
+</body></html>

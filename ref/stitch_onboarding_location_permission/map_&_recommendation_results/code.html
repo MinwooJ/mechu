@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>TrendyEats - Map &amp; Recommendations</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f48c25",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#181411", // Keeping consistent with the component provided
+                        "card-dark": "#27211b",
+                        "border-dark": "#393028",
+                        "text-secondary": "#baab9c",
+                    },
+                    fontFamily: {
+                        "display": ["Epilogue", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for the feed */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Map pattern background simulation */
+        .map-pattern {
+            background-color: #221910;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(244, 140, 37, 0.05) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(244, 140, 37, 0.05) 0%, transparent 20%);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display h-screen flex flex-col overflow-hidden">
+<!-- Top Navigation -->
+<header class="flex-none flex items-center justify-between whitespace-nowrap border-b border-solid border-border-dark bg-background-dark px-6 py-3 z-20 relative shadow-md">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-white">
+<div class="size-8 text-primary">
+<span class="material-symbols-outlined text-3xl">restaurant_menu</span>
+</div>
+<h2 class="text-white text-xl font-bold leading-tight tracking-[-0.015em]">TrendyEats</h2>
+</div>
+<!-- Search Bar -->
+<label class="hidden md:flex flex-col min-w-40 h-10 w-96">
+<div class="flex w-full flex-1 items-stretch rounded-xl h-full bg-border-dark/50 hover:bg-border-dark transition-colors group focus-within:ring-2 focus-within:ring-primary/50">
+<div class="text-text-secondary flex items-center justify-center pl-4 rounded-l-xl border-r-0">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border-none bg-transparent focus:border-none h-full placeholder:text-text-secondary px-3 rounded-l-none border-l-0 pl-2 text-sm font-normal leading-normal" placeholder="Try 'Spicy Tteokbokki in Gangnam'" value=""/>
+</div>
+</label>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden lg:flex items-center gap-6">
+<a class="text-text-secondary hover:text-primary transition-colors text-sm font-medium leading-normal" href="#">My Lists</a>
+<a class="text-text-secondary hover:text-primary transition-colors text-sm font-medium leading-normal" href="#">Profile</a>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-border-dark cursor-pointer hover:border-primary transition-colors" data-alt="User profile picture" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBVBDF51HWSF5x3rcCU79qmqJWxsY2eQHswHF1JioVEusOuzqwHCMqjJli5hePpXKfAcKxlz9EopLga37k9Tjj3K86fpatJP5bYp6SZhb156CG2TBsLA_l9jUVbFyJt2t6pkuOsf2xynR03KWFPxFpxJCO6mRXuA4CIOape4v_4erkEdJahl1W_gHz9hfG9NCx7Xq9eDwkI415Jxq7gzXcnOiageZ2HyXzIGepO2vFa-TRUeKetg_SqeGrj76wLtDpayLNuIbLCcfJn");'></div>
+</div>
+</header>
+<!-- Main Content: Split Layout -->
+<main class="flex flex-1 overflow-hidden relative">
+<!-- Left Panel: Map (Sticky/Fixed visually) -->
+<section class="hidden lg:block w-3/5 h-full relative bg-background-dark map-pattern border-r border-border-dark group">
+<!-- Simulated Map Interface -->
+<div class="absolute inset-0 w-full h-full opacity-60 mix-blend-overlay pointer-events-none" data-alt="Dark themed map of Seoul streets" data-location="Seoul Map Dark Mode" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD8RrXSxbJNwL57jjRxcL5HNHSD-hQgsJP8D4IlITYYz9wCb6XljOHa3oiKAC3fHyyE7bd2qA6omSm6lQuKD4gPNlcAQeFmpq5-ZSSXnqmHnCc0aY24tj4SniT74qtVNM_21rc5GGkPghaCUq9OurLm-Ij-lKBPcst8_-VxdQBNnIAFCwyktMjnMl0aEvjeMLONTYjN7_GXpC_E_8Ip4Fnlypo00T__ivCUEBSk7yid64vZAi2nC0vq7XJPqbfFK59rHBMelb-4Jn_G'); background-size: cover; background-position: center;"></div>
+<!-- Map Markers -->
+<div class="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110 hover:z-50 z-10 group/marker">
+<div class="relative flex flex-col items-center">
+<div class="bg-card-dark text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg mb-2 opacity-0 group-hover/marker:opacity-100 transition-opacity whitespace-nowrap border border-border-dark">
+                        Gwangjang Market
+                   </div>
+<span class="material-symbols-outlined text-5xl text-primary drop-shadow-[0_4px_6px_rgba(0,0,0,0.5)]">location_on</span>
+</div>
+</div>
+<div class="absolute top-1/2 left-[40%] transform cursor-pointer transition-transform hover:scale-110 hover:z-50 z-10 group/marker">
+<div class="relative flex flex-col items-center">
+<div class="bg-card-dark text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg mb-2 opacity-0 group-hover/marker:opacity-100 transition-opacity whitespace-nowrap border border-border-dark">
+                        Yeonnam Pasta
+                   </div>
+<span class="material-symbols-outlined text-4xl text-primary/70 hover:text-primary drop-shadow-[0_4px_6px_rgba(0,0,0,0.5)]">location_on</span>
+</div>
+</div>
+<div class="absolute bottom-1/3 right-[35%] transform cursor-pointer transition-transform hover:scale-110 hover:z-50 z-10 group/marker">
+<div class="relative flex flex-col items-center">
+<div class="bg-card-dark text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg mb-2 opacity-0 group-hover/marker:opacity-100 transition-opacity whitespace-nowrap border border-border-dark">
+                        BBQ Chicken
+                   </div>
+<span class="material-symbols-outlined text-4xl text-primary/70 hover:text-primary drop-shadow-[0_4px_6px_rgba(0,0,0,0.5)]">location_on</span>
+</div>
+</div>
+<!-- Map Controls -->
+<div class="absolute bottom-8 right-8 flex flex-col gap-2">
+<button class="size-10 bg-card-dark hover:bg-border-dark text-white rounded-lg shadow-lg flex items-center justify-center transition-colors border border-border-dark">
+<span class="material-symbols-outlined">add</span>
+</button>
+<button class="size-10 bg-card-dark hover:bg-border-dark text-white rounded-lg shadow-lg flex items-center justify-center transition-colors border border-border-dark">
+<span class="material-symbols-outlined">remove</span>
+</button>
+<button class="size-10 bg-card-dark hover:bg-border-dark text-white rounded-lg shadow-lg flex items-center justify-center transition-colors border border-border-dark mt-2">
+<span class="material-symbols-outlined">my_location</span>
+</button>
+</div>
+</section>
+<!-- Right Panel: Feed -->
+<section class="w-full lg:w-2/5 h-full overflow-y-auto bg-background-dark relative scrollbar-hide">
+<div class="p-6 md:p-8 flex flex-col gap-8 pb-32">
+<!-- Feed Header -->
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2 text-primary mb-1">
+<span class="material-symbols-outlined text-sm">auto_awesome</span>
+<span class="text-xs font-bold uppercase tracking-wider">AI Recommendations</span>
+</div>
+<h1 class="text-white tracking-tight text-3xl font-black leading-tight">
+                        Top Picks in Hongdae
+                    </h1>
+<p class="text-text-secondary text-base font-normal leading-normal">
+                        We found 3 spots matching your <span class="text-white font-medium">spicy cravings</span> around Mapo-gu.
+                    </p>
+<!-- Filter Chips -->
+<div class="flex flex-wrap gap-2 mt-2">
+<button class="px-3 py-1.5 rounded-full bg-primary/20 text-primary text-xs font-bold hover:bg-primary/30 transition-colors border border-primary/20">
+                            Open Now
+                        </button>
+<button class="px-3 py-1.5 rounded-full bg-border-dark text-text-secondary text-xs font-bold hover:text-white transition-colors border border-transparent">
+                            Under 1km
+                        </button>
+<button class="px-3 py-1.5 rounded-full bg-border-dark text-text-secondary text-xs font-bold hover:text-white transition-colors border border-transparent">
+                            Top Rated
+                        </button>
+</div>
+</div>
+<!-- Card 1: The Winner -->
+<div class="group relative flex flex-col rounded-2xl bg-card-dark shadow-xl overflow-hidden ring-1 ring-white/5 hover:ring-primary/50 transition-all duration-300">
+<div class="absolute top-4 left-4 z-10">
+<span class="bg-primary text-background-dark text-xs font-black px-3 py-1 rounded-md shadow-lg uppercase tracking-wider flex items-center gap-1">
+<span class="material-symbols-outlined text-base">trophy</span>
+                            #1 Match
+                        </span>
+</div>
+<div class="w-full h-64 bg-gray-800 relative overflow-hidden">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" data-alt="Golden crispy mung bean pancake on a plate" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBLJBoGb-8Xbj5F-VEGVsGKz_UJW9NAR-Tv8h5vuTuEMsNwGDrxiKVrI_H64WMOOqD_nTQKas4Op_UrHJmglp81f1OrfpAZfbiaZGx-PkJcjF3inIA1xuGUYhW60YWpSODGeniwr3CRmP-DobN8aWj8xMRYBiZhvUVRFRHrnbPLsmqFD-hGxTDXuyGH2m-BQa-YVkJXKlDHBsVRDDjIDOMDcBuisR933qwJ2J-UShaYi1RLcUGa7Mmn-XTlsVCdybdhul1UVHXpGzD0");'></div>
+<div class="absolute inset-0 bg-gradient-to-t from-card-dark via-transparent to-transparent opacity-90"></div>
+</div>
+<div class="p-6 pt-2 flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-white text-2xl font-bold leading-tight mb-1 group-hover:text-primary transition-colors">Gwangjang Mung Bean</h3>
+<div class="flex items-center gap-1 text-primary text-sm font-bold">
+<span class="material-symbols-outlined text-lg filled">star</span>
+<span>4.8</span>
+<span class="text-text-secondary font-normal ml-1">(1,240 reviews)</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-white font-bold text-lg">$$</span>
+<span class="text-text-secondary text-xs">0.2km</span>
+</div>
+</div>
+<p class="text-text-secondary text-sm leading-relaxed border-l-2 border-primary/30 pl-3">
+                            Famous crispy mung bean pancakes with onions and kimchi. A must-try street food classic with a modern twist.
+                        </p>
+<div class="flex gap-3 pt-2">
+<button class="flex-1 h-12 rounded-xl bg-primary hover:bg-primary/90 text-background-dark text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(244,140,37,0.3)] hover:shadow-[0_0_20px_rgba(244,140,37,0.5)]">
+<span class="material-symbols-outlined">map</span>
+                                Open in Google Maps
+                            </button>
+<button class="size-12 rounded-xl bg-border-dark hover:bg-white/10 text-white flex items-center justify-center transition-colors" title="Save to list">
+<span class="material-symbols-outlined">bookmark_border</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="group relative flex flex-col rounded-2xl bg-card-dark shadow-lg overflow-hidden ring-1 ring-white/5 hover:ring-white/20 transition-all duration-300">
+<div class="w-full h-48 bg-gray-800 relative overflow-hidden">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" data-alt="Plate of creamy rose pasta with shrimp" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAW2tzZKEqrA-_Y6mRV3t12bLgl0PwDdRHkEJKeY0ihcYxG2Xg-JtgzBjjeQHBIArAcpYQkNa9KT8hQhXH_s9MFEc9YuZcf_N5FkUBoXeWpTkYbtI_g_3X-b0QeH1cYJ78ifNkHqnOVrs94pOUgsBU2ncql2FRChNRuzxwfa_hisPyT6XvAtSVpZRPRw84ZGJsvQVkZxiDMzaHo4TSUr-kOXPP3Usf0pF8ZzFg4_Q3fxif5AeEqfsLCuZ5T4LmWNfsyGWZ08di10hJp");'></div>
+</div>
+<div class="p-5 flex flex-col gap-3">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-white text-xl font-bold leading-tight mb-1 group-hover:text-primary transition-colors">Yeonnam Pasta House</h3>
+<div class="flex items-center gap-1 text-primary text-sm font-medium">
+<span class="material-symbols-outlined text-lg filled">star</span>
+<span>4.5</span>
+<span class="text-text-secondary font-normal ml-1">(850 reviews)</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-white font-bold text-base">$$$</span>
+<span class="text-text-secondary text-xs">0.5km</span>
+</div>
+</div>
+<p class="text-text-secondary text-sm leading-relaxed line-clamp-2">
+                            Creamy spicy rose pasta with shrimp. The perfect fusion of Italian tradition and Korean spice.
+                        </p>
+<button class="w-full mt-2 h-10 rounded-xl border border-border-dark hover:bg-border-dark text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors">
+<span class="material-symbols-outlined text-lg">map</span>
+                            View on Map
+                        </button>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="group relative flex flex-col rounded-2xl bg-card-dark shadow-lg overflow-hidden ring-1 ring-white/5 hover:ring-white/20 transition-all duration-300">
+<div class="w-full h-48 bg-gray-800 relative overflow-hidden">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" data-alt="Korean fried chicken with spicy sauce" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDN-jEImIJvLmFuQbX6cYL2mOObfDwLasVOmALkp-6gXgRzliNbJC9n7b9Ksh3x8NlIsgR7YjZIm4FrgjOgaTcSmRzlkP6ra0Yym45hvqrVRghtohqU-u3RmwmGx3f0H4xfBlATNYR5DOuLXIwdN2KlXNNoZ8ckfFuY4I6QUJXlOAM6xsyT8bmZaSFRtTDZZGeZQcK6Tgb0dWIAIXiLhtBVFuUEdWn2JbuKWCRJ2lEDWiXJiMyYiT1lRgeAFauAX459mu90L89ftTzd");'></div>
+</div>
+<div class="p-5 flex flex-col gap-3">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-white text-xl font-bold leading-tight mb-1 group-hover:text-primary transition-colors">BBQ Chicken &amp; Beer</h3>
+<div class="flex items-center gap-1 text-primary text-sm font-medium">
+<span class="material-symbols-outlined text-lg filled">star</span>
+<span>4.4</span>
+<span class="text-text-secondary font-normal ml-1">(2,100 reviews)</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-white font-bold text-base">$$</span>
+<span class="text-text-secondary text-xs">0.8km</span>
+</div>
+</div>
+<p class="text-text-secondary text-sm leading-relaxed line-clamp-2">
+                            Classic Korean fried chicken with a variety of sauces. Great spot for late night chimaek.
+                        </p>
+<button class="w-full mt-2 h-10 rounded-xl border border-border-dark hover:bg-border-dark text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors">
+<span class="material-symbols-outlined text-lg">map</span>
+                            View on Map
+                        </button>
+</div>
+</div>
+<!-- Footer / End of List -->
+<div class="flex justify-center py-6">
+<span class="text-text-secondary text-sm">You've reached the end of the list!</span>
+</div>
+</div>
+</section>
+<!-- Floating Action Button (Re-roll) -->
+<div class="absolute bottom-8 left-1/2 lg:left-[80%] transform -translate-x-1/2 z-30">
+<button class="group relative flex items-center gap-3 bg-primary hover:bg-[#ff9e42] text-background-dark px-6 py-4 rounded-full shadow-[0_8px_30px_rgba(244,140,37,0.4)] transition-all hover:scale-105 active:scale-95">
+<span class="material-symbols-outlined text-3xl animate-[spin_3s_linear_infinite] group-hover:animate-none">casino</span>
+<span class="text-lg font-black tracking-tight uppercase">Re-roll</span>
+<!-- Tooltip hint -->
+<span class="absolute -top-12 left-1/2 -translate-x-1/2 bg-white text-black text-xs font-bold px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                    Get new spots
+                    <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-white"></div>
+</span>
+</button>
+</div>
+</main>
+</body></html>

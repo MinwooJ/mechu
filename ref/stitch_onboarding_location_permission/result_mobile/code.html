@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>TrendyEats - Mobile Map &amp; Recommendations</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f48c25",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#181411",
+                        "card-dark": "#27211b",
+                        "border-dark": "#393028",
+                        "text-secondary": "#baab9c",
+                    },
+                    fontFamily: {
+                        "display": ["Epilogue", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .map-pattern {
+            background-color: #221910;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(244, 140, 37, 0.05) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(244, 140, 37, 0.05) 0%, transparent 20%);
+        }.bottom-sheet {
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
+        }
+        .drag-handle {
+            width: 40px;
+            height: 4px;
+            background-color: #393028;
+            border-radius: 2px;
+            margin: 12px auto;
+        }
+    </style>
+</head>
+<body class="bg-black text-slate-100 font-display h-screen flex justify-center items-center overflow-hidden">
+<div class="relative w-full max-w-md h-full max-h-[900px] bg-background-dark overflow-hidden shadow-2xl md:rounded-3xl border- border-zinc-800 flex flex-col">
+<div class="absolute top-0 w-full h-12 z-50 bg-gradient-to-b from-black/80 to-transparent flex justify-between items-center px-6 pointer-events-none">
+<span class="text-xs font-bold tracking-widest text-white/80">9:41</span>
+<div class="flex gap-2">
+<span class="material-symbols-outlined text-sm text-white/80">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-sm text-white/80">wifi</span>
+<span class="material-symbols-outlined text-sm text-white/80">battery_full</span>
+</div>
+</div>
+<header class="absolute top-12 left-0 right-0 z-40 px-4">
+<div class="flex items-center justify-between gap-3">
+<div class="bg-card-dark/90 backdrop-blur-md p-2 rounded-full shadow-lg border border-white/10">
+<span class="material-symbols-outlined text-white">menu</span>
+</div>
+<div class="flex-1 bg-card-dark/90 backdrop-blur-md h-12 rounded-full shadow-lg border border-white/10 flex items-center px-4">
+<span class="material-symbols-outlined text-primary text-[20px] mr-2">search</span>
+<input class="bg-transparent border-none text-white text-sm placeholder:text-text-secondary focus:ring-0 w-full p-0" placeholder="Search Gangnam..." readonly="" value="Top picks in Hongdae"/>
+</div>
+<div class="bg-card-dark/90 backdrop-blur-md p-1 rounded-full shadow-lg border border-white/10 size-10 bg-center bg-cover" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBVBDF51HWSF5x3rcCU79qmqJWxsY2eQHswHF1JioVEusOuzqwHCMqjJli5hePpXKfAcKxlz9EopLga37k9Tjj3K86fpatJP5bYp6SZhb156CG2TBsLA_l9jUVbFyJt2t6pkuOsf2xynR03KWFPxFpxJCO6mRXuA4CIOape4v_4erkEdJahl1W_gHz9hfG9NCx7Xq9eDwkI415Jxq7gzXcnOiageZ2HyXzIGepO2vFa-TRUeKetg_SqeGrj76wLtDpayLNuIbLCcfJn");'></div>
+</div>
+</header>
+<div class="absolute inset-0 z-0 map-pattern">
+<div class="absolute inset-0 w-full h-full opacity-70 mix-blend-overlay" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD8RrXSxbJNwL57jjRxcL5HNHSD-hQgsJP8D4IlITYYz9wCb6XljOHa3oiKAC3fHyyE7bd2qA6omSm6lQuKD4gPNlcAQeFmpq5-ZSSXnqmHnCc0aY24tj4SniT74qtVNM_21rc5GGkPghaCUq9OurLm-Ij-lKBPcst8_-VxdQBNnIAFCwyktMjnMl0aEvjeMLONTYjN7_GXpC_E_8Ip4Fnlypo00T__ivCUEBSk7yid64vZAi2nC0vq7XJPqbfFK59rHBMelb-4Jn_G'); background-size: cover; background-position: center;"></div>
+<div class="absolute top-[35%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center">
+<div class="bg-primary text-background-dark text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg mb-2 whitespace-nowrap animate-bounce">
+                    #1 Match
+                </div>
+<span class="material-symbols-outlined text-5xl text-primary drop-shadow-[0_4px_6px_rgba(0,0,0,0.5)]">location_on</span>
+</div>
+<div class="absolute top-[30%] left-[20%] z-0 opacity-80">
+<span class="material-symbols-outlined text-4xl text-white drop-shadow-md">location_on</span>
+</div>
+<div class="absolute top-[45%] right-[20%] z-0 opacity-80">
+<span class="material-symbols-outlined text-4xl text-white drop-shadow-md">location_on</span>
+</div>
+</div>
+<div class="absolute bottom-[45vh] right-4 z-30">
+<button class="size-14 bg-primary hover:bg-[#ff9e42] text-background-dark rounded-full shadow-[0_8px_20px_rgba(244,140,37,0.5)] flex items-center justify-center transition-transform active:scale-95 group">
+<span class="material-symbols-outlined text-3xl animate-[spin_3s_linear_infinite] group-hover:animate-none">casino</span>
+</button>
+</div>
+<div class="absolute bottom-[45vh] left-4 z-30 flex flex-col gap-3">
+<button class="size-10 bg-card-dark/90 backdrop-blur text-white rounded-full shadow-lg flex items-center justify-center border border-white/10">
+<span class="material-symbols-outlined text-xl">my_location</span>
+</button>
+</div>
+<div class="absolute bottom-0 left-0 right-0 h-[42vh] bg-card-dark rounded-t-3xl bottom-sheet z-20 flex flex-col border-t border-white/5">
+<div class="w-full flex justify-center pt-1 pb-2 cursor-grab active:cursor-grabbing">
+<div class="drag-handle bg-white/20"></div>
+</div>
+<div class="px-5 pb-3 flex-none">
+<div class="flex items-center gap-2 text-primary mb-1">
+<span class="material-symbols-outlined text-xs">auto_awesome</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">AI Recommendations</span>
+</div>
+<h2 class="text-white text-xl font-bold leading-tight">Top Picks in Hongdae</h2>
+<div class="flex gap-2 mt-3 overflow-x-auto scrollbar-hide pb-1">
+<button class="flex-none px-4 py-2 rounded-full bg-primary text-background-dark text-xs font-bold border border-primary">
+                        Open Now
+                    </button>
+<button class="flex-none px-4 py-2 rounded-full bg-white/5 text-text-secondary text-xs font-bold border border-white/5">
+                        Under 1km
+                    </button>
+<button class="flex-none px-4 py-2 rounded-full bg-white/5 text-text-secondary text-xs font-bold border border-white/5">
+                        Top Rated
+                    </button>
+<button class="flex-none px-4 py-2 rounded-full bg-white/5 text-text-secondary text-xs font-bold border border-white/5">
+                        Cheap Eats
+                    </button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto overflow-x-hidden px-5 pb-8 scrollbar-hide">
+<div class="flex flex-col gap-4">
+<div class="w-full bg-background-dark rounded-2xl overflow-hidden shadow-sm border border-border-dark flex flex-row h-32">
+<div class="w-32 h-full bg-gray-800 relative flex-none">
+<div class="absolute inset-0 bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBLJBoGb-8Xbj5F-VEGVsGKz_UJW9NAR-Tv8h5vuTuEMsNwGDrxiKVrI_H64WMOOqD_nTQKas4Op_UrHJmglp81f1OrfpAZfbiaZGx-PkJcjF3inIA1xuGUYhW60YWpSODGeniwr3CRmP-DobN8aWj8xMRYBiZhvUVRFRHrnbPLsmqFD-hGxTDXuyGH2m-BQa-YVkJXKlDHBsVRDDjIDOMDcBuisR933qwJ2J-UShaYi1RLcUGa7Mmn-XTlsVCdybdhul1UVHXpGzD0");'></div>
+<div class="absolute top-2 left-2">
+<span class="bg-primary text-background-dark text-[10px] font-black px-1.5 py-0.5 rounded shadow-sm">#1</span>
+</div>
+</div>
+<div class="p-3 flex flex-col justify-between flex-1 min-w-0">
+<div>
+<h3 class="text-white text-base font-bold leading-tight truncate">Gwangjang Mung Bean</h3>
+<div class="flex items-center gap-1 text-primary text-xs font-bold mt-1">
+<span class="material-symbols-outlined text-sm filled">star</span>
+<span>4.8</span>
+<span class="text-text-secondary font-normal">(1.2k)</span>
+</div>
+<p class="text-text-secondary text-xs mt-1 truncate">Crispy pancakes &amp; kimchi</p>
+</div>
+<div class="flex items-end justify-between mt-2">
+<span class="text-white font-bold text-sm">$$</span>
+<button class="h-8 px-3 rounded-lg bg-primary text-background-dark text-xs font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">map</span>
+                                    Go
+                                </button>
+</div>
+</div>
+</div>
+<div class="w-full bg-background-dark rounded-2xl overflow-hidden shadow-sm border border-border-dark flex flex-row h-32">
+<div class="w-32 h-full bg-gray-800 relative flex-none">
+<div class="absolute inset-0 bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAW2tzZKEqrA-_Y6mRV3t12bLgl0PwDdRHkEJKeY0ihcYxG2Xg-JtgzBjjeQHBIArAcpYQkNa9KT8hQhXH_s9MFEc9YuZcf_N5FkUBoXeWpTkYbtI_g_3X-b0QeH1cYJ78ifNkHqnOVrs94pOUgsBU2ncql2FRChNRuzxwfa_hisPyT6XvAtSVpZRPRw84ZGJsvQVkZxiDMzaHo4TSUr-kOXPP3Usf0pF8ZzFg4_Q3fxif5AeEqfsLCuZ5T4LmWNfsyGWZ08di10hJp");'></div>
+</div>
+<div class="p-3 flex flex-col justify-between flex-1 min-w-0">
+<div>
+<h3 class="text-white text-base font-bold leading-tight truncate">Yeonnam Pasta House</h3>
+<div class="flex items-center gap-1 text-primary text-xs font-medium mt-1">
+<span class="material-symbols-outlined text-sm filled">star</span>
+<span>4.5</span>
+<span class="text-text-secondary font-normal">(850)</span>
+</div>
+<p class="text-text-secondary text-xs mt-1 truncate">Spicy rose pasta fusion</p>
+</div>
+<div class="flex items-end justify-between mt-2">
+<span class="text-white font-bold text-sm">$$$</span>
+<button class="h-8 px-3 rounded-lg bg-white/10 text-white text-xs font-bold flex items-center gap-1 border border-white/10">
+<span class="material-symbols-outlined text-sm">map</span>
+                                    View
+                                </button>
+</div>
+</div>
+</div>
+<div class="w-full bg-background-dark rounded-2xl overflow-hidden shadow-sm border border-border-dark flex flex-row h-32">
+<div class="w-32 h-full bg-gray-800 relative flex-none">
+<div class="absolute inset-0 bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDN-jEImIJvLmFuQbX6cYL2mOObfDwLasVOmALkp-6gXgRzliNbJC9n7b9Ksh3x8NlIsgR7YjZIm4FrgjOgaTcSmRzlkP6ra0Yym45hvqrVRghtohqU-u3RmwmGx3f0H4xfBlATNYR5DOuLXIwdN2KlXNNoZ8ckfFuY4I6QUJXlOAM6xsyT8bmZaSFRtTDZZGeZQcK6Tgb0dWIAIXiLhtBVFuUEdWn2JbuKWCRJ2lEDWiXJiMyYiT1lRgeAFauAX459mu90L89ftTzd");'></div>
+</div>
+<div class="p-3 flex flex-col justify-between flex-1 min-w-0">
+<div>
+<h3 class="text-white text-base font-bold leading-tight truncate">BBQ Chicken &amp; Beer</h3>
+<div class="flex items-center gap-1 text-primary text-xs font-medium mt-1">
+<span class="material-symbols-outlined text-sm filled">star</span>
+<span>4.4</span>
+<span class="text-text-secondary font-normal">(2.1k)</span>
+</div>
+<p class="text-text-secondary text-xs mt-1 truncate">Late night chimaek spot</p>
+</div>
+<div class="flex items-end justify-between mt-2">
+<span class="text-white font-bold text-sm">$$</span>
+<button class="h-8 px-3 rounded-lg bg-white/10 text-white text-xs font-bold flex items-center gap-1 border border-white/10">
+<span class="material-symbols-outlined text-sm">map</span>
+                                    View
+                                </button>
+</div>
+</div>
+</div>
+<div class="h-8 w-full flex justify-center items-center">
+<span class="text-text-secondary text-xs opacity-50">End of list</span>
+</div>
+</div>
+</div>
+</div>
+<nav class="bg-background-dark border-t border-white/10 px-6 py-3 flex justify-between items-center z-50">
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined">map</span>
+<span class="text-[10px] font-medium">Map</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-text-secondary" href="#">
+<span class="material-symbols-outlined">favorite</span>
+<span class="text-[10px] font-medium">Saved</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-text-secondary" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</a>
+</nav>
+</div>
+
+</body></html>

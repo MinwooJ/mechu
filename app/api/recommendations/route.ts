@@ -3,10 +3,20 @@ import { NextResponse } from "next/server";
 import { getRecommendations } from "@/lib/reco/service";
 import type { RecommendationRequest } from "@/lib/reco/types";
 
+function isMode(mode: unknown): mode is "lunch" | "dinner" {
+  return mode === "lunch" || mode === "dinner";
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as RecommendationRequest;
-    if (typeof body?.lat !== "number" || typeof body?.lng !== "number" || !body?.mode) {
+    if (
+      typeof body?.lat !== "number" ||
+      !Number.isFinite(body.lat) ||
+      typeof body?.lng !== "number" ||
+      !Number.isFinite(body.lng) ||
+      !isMode(body?.mode)
+    ) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
     }
     return NextResponse.json(await getRecommendations(body));

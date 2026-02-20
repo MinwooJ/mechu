@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html class="dark" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MatZip - Meal Selection</title>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;500;700;900&amp;family=Noto+Sans+KR:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f48c25",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#221910",
+                        "surface-dark": "#2d241b",
+                        "surface-lighter": "#3d3226",
+                    },
+                    fontFamily: {
+                        "display": ["Epilogue", "Noto Sans KR", "sans-serif"],
+                        "sans": ["Epilogue", "Noto Sans KR", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer utilities {
+            .no-scrollbar::-webkit-scrollbar {
+                display: none;
+            }
+            .no-scrollbar {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 overflow-x-hidden antialiased selection:bg-primary selection:text-white">
+<div class="relative min-h-screen flex flex-col bg-background-dark text-slate-100">
+<header class="sticky top-0 z-40 flex items-center justify-between px-8 py-5 bg-background-dark/95 backdrop-blur-md border-b border-white/5">
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 text-white transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h2 class="text-xl font-bold text-white tracking-tight">MatZip Search</h2>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+<span class="material-symbols-outlined text-[18px]">restart_alt</span>
+                초기화
+            </button>
+</div>
+</header>
+<main class="flex-grow w-full max-w-7xl mx-auto px-8 py-10 flex flex-col gap-10 pb-32">
+<div class="flex flex-col gap-2">
+<h3 class="text-4xl md:text-5xl font-black text-white tracking-tight">언제 드시나요?</h3>
+<p class="text-slate-400 text-lg">오늘의 기분과 상황에 맞는 최고의 맛집을 찾아드릴게요.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+<div class="relative group cursor-pointer h-[320px] md:h-[400px]">
+<input checked="" class="peer hidden" id="lunch" name="meal_type" type="radio"/>
+<label class="block relative w-full h-full overflow-hidden rounded-3xl ring-4 ring-transparent peer-checked:ring-primary/80 transition-all hover:scale-[1.01] hover:shadow-2xl" for="lunch">
+<img alt="Lunch Bibimbap" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-70 group-hover:opacity-80" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMWGTxzurrn4havhGUDYV_gxJ9ubm8K_t8zOB80jXO4npSxLJ4ypVdPu3oV1_aTqHxjHcSfq2CysZlS2fHFIL4yigw4MHTKN3oWU_mxNQQ5QlXm7uXaWJAqMNqFUyt3c5JD2edibHkAYRTWannea0Y0YGg95gjT7UX7a8llinPAd60ZsO9qK3BZw9Dr-owBwVjlD2sUPaIgt7bxx3xUJBqxdiCkcRy6abLc645lKoZm8pvED8vLxhkeroDHr6NFdmOnk4tv5SVcLpe"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
+<div class="absolute top-6 right-6 h-10 w-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/20 opacity-0 scale-50 peer-checked:opacity-100 peer-checked:scale-100 peer-checked:bg-primary peer-checked:text-black peer-checked:border-primary transition-all duration-300">
+<span class="material-symbols-outlined text-xl font-bold">check</span>
+</div>
+<div class="absolute bottom-0 left-0 p-8 w-full flex flex-col items-start">
+<span class="inline-block px-3 py-1.5 mb-3 text-xs font-bold uppercase tracking-widest bg-white/20 backdrop-blur-md rounded-lg text-white border border-white/10">Light &amp; Fresh</span>
+<h4 class="text-4xl md:text-5xl font-black text-white leading-none mb-2">점심</h4>
+<p class="text-slate-300 text-lg font-medium">가볍고 활기찬 에너지 충전</p>
+</div>
+</label>
+</div>
+<div class="relative group cursor-pointer h-[320px] md:h-[400px]">
+<input class="peer hidden" id="dinner" name="meal_type" type="radio"/>
+<label class="block relative w-full h-full overflow-hidden rounded-3xl ring-4 ring-transparent peer-checked:ring-primary/80 transition-all hover:scale-[1.01] hover:shadow-2xl" for="dinner">
+<img alt="Dinner BBQ" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-70 group-hover:opacity-80" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2qiCj-blHJ7K82Cw1k5tJwYhHdhZeBZtnalYkSL46D-H4YjfJHuBQ_1BNXD1hpj9v-EUgT0vZtUedb54eeZStGbvHXrrm_fIp92AvM4S9UgXfdmwDVa8LjJ9af9C3rRHr_u84yipKuIVDS5jeSYX61Q4Me-Jr5vM-9ow4BWPeXR2e7hunLo8iTsSktPnkFjxYUTkEVtQdjqGNx5xct0-5Whztqffgm-UPBfmXyTLlSiBmszY4A3LiZVGa-ZEQOZ6_V1SbE7bvaU_Z"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
+<div class="absolute top-6 right-6 h-10 w-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/20 opacity-0 scale-50 peer-checked:opacity-100 peer-checked:scale-100 peer-checked:bg-primary peer-checked:text-black peer-checked:border-primary transition-all duration-300">
+<span class="material-symbols-outlined text-xl font-bold">check</span>
+</div>
+<div class="absolute bottom-0 left-0 p-8 w-full flex flex-col items-start">
+<span class="inline-block px-3 py-1.5 mb-3 text-xs font-bold uppercase tracking-widest bg-white/20 backdrop-blur-md rounded-lg text-white border border-white/10">Mood &amp; Chill</span>
+<h4 class="text-4xl md:text-5xl font-black text-white leading-none mb-2">저녁</h4>
+<p class="text-slate-300 text-lg font-medium">하루를 마무리하는 맛있는 위로</p>
+</div>
+</label>
+</div>
+</div>
+<div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent w-full"></div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+<div class="lg:col-span-5 flex flex-col gap-6 p-6 md:p-8 bg-surface-dark/50 rounded-3xl border border-white/5">
+<div class="flex justify-between items-center mb-2">
+<div class="flex items-center gap-3">
+<div class="p-2 rounded-lg bg-surface-lighter">
+<span class="material-symbols-outlined text-primary">distance</span>
+</div>
+<div>
+<h3 class="font-bold text-white text-xl">거리 범위</h3>
+<p class="text-slate-400 text-sm">현재 위치 기준 검색 반경</p>
+</div>
+</div>
+<span class="text-primary font-bold bg-primary/10 px-4 py-1.5 rounded-full text-sm border border-primary/20">500m 이내</span>
+</div>
+<div class="relative h-16 flex items-center w-full touch-none select-none px-2">
+<div class="absolute w-full h-3 bg-surface-lighter rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-orange-600 to-primary w-1/3 shadow-[0_0_10px_rgba(244,140,37,0.3)]"></div>
+</div>
+<div class="absolute left-1/3 -ml-4 h-9 w-9 bg-white rounded-full shadow-[0_0_20px_rgba(244,140,37,0.6)] border-4 border-surface-dark cursor-pointer hover:scale-110 active:scale-95 transition-transform flex items-center justify-center z-10">
+<div class="w-2 h-2 bg-primary rounded-full"></div>
+</div>
+<div class="absolute -bottom-1 left-0 text-xs text-slate-500 font-medium">100m</div>
+<div class="absolute -bottom-1 left-1/2 -translate-x-1/2 text-xs text-slate-500 font-medium">1km</div>
+<div class="absolute -bottom-1 right-0 text-xs text-slate-500 font-medium">3km</div>
+</div>
+</div>
+<div class="lg:col-span-7 flex flex-col gap-6 p-6 md:p-8 bg-surface-dark/50 rounded-3xl border border-white/5">
+<div class="flex items-center gap-3 mb-2">
+<div class="p-2 rounded-lg bg-surface-lighter">
+<span class="material-symbols-outlined text-primary">casino</span>
+</div>
+<div>
+<h3 class="font-bold text-white text-xl">오늘의 바이브</h3>
+<p class="text-slate-400 text-sm">원하는 맛집 스타일 선택 (랜덤 추천)</p>
+</div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 h-full">
+<label class="cursor-pointer group relative h-full">
+<input checked="" class="peer hidden" name="vibe" type="radio"/>
+<div class="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl bg-surface-dark border border-white/5 peer-checked:bg-surface-lighter peer-checked:border-primary/50 peer-checked:ring-2 peer-checked:ring-primary/50 transition-all h-full hover:bg-surface-lighter/50">
+<span class="text-4xl mb-2 drop-shadow-lg">🛡️</span>
+<span class="font-bold text-slate-200 peer-checked:text-white text-lg">안전빵</span>
+<span class="text-sm text-slate-500 text-center leading-tight">별점 4.0 이상<br/>검증된 맛집</span>
+</div>
+<div class="absolute top-3 right-3 opacity-0 peer-checked:opacity-100 text-primary transition-opacity scale-0 peer-checked:scale-100 duration-200">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+</label>
+<label class="cursor-pointer group relative h-full">
+<input class="peer hidden" name="vibe" type="radio"/>
+<div class="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl bg-surface-dark border border-white/5 peer-checked:bg-surface-lighter peer-checked:border-primary/50 peer-checked:ring-2 peer-checked:ring-primary/50 transition-all h-full hover:bg-surface-lighter/50">
+<span class="text-4xl mb-2 drop-shadow-lg">🔥</span>
+<span class="font-bold text-slate-200 peer-checked:text-white text-lg">요즘 핫한</span>
+<span class="text-sm text-slate-500 text-center leading-tight">SNS 인기<br/>웨이팅 있음</span>
+</div>
+<div class="absolute top-3 right-3 opacity-0 peer-checked:opacity-100 text-primary transition-opacity scale-0 peer-checked:scale-100 duration-200">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+</label>
+<label class="cursor-pointer group relative h-full">
+<input class="peer hidden" name="vibe" type="radio"/>
+<div class="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl bg-surface-dark border border-white/5 peer-checked:bg-surface-lighter peer-checked:border-primary/50 peer-checked:ring-2 peer-checked:ring-primary/50 transition-all h-full hover:bg-surface-lighter/50">
+<span class="text-4xl mb-2 drop-shadow-lg">🎲</span>
+<span class="font-bold text-slate-200 peer-checked:text-white text-lg">모험가</span>
+<span class="text-sm text-slate-500 text-center leading-tight">숨은 로컬<br/>나만 아는 곳</span>
+</div>
+<div class="absolute top-3 right-3 opacity-0 peer-checked:opacity-100 text-primary transition-opacity scale-0 peer-checked:scale-100 duration-200">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+</label>
+</div>
+</div>
+</div>
+</main>
+<div class="fixed bottom-0 left-0 right-0 p-6 md:p-8 bg-background-dark border-t border-white/10 z-50">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+<div class="hidden md:flex flex-col">
+<span class="text-sm text-slate-400 font-medium mb-1">선택된 필터</span>
+<div class="flex items-center gap-2 text-white font-bold text-lg">
+<span class="text-primary">점심</span>
+<span class="w-1 h-1 bg-slate-500 rounded-full"></span>
+<span>500m 이내</span>
+<span class="w-1 h-1 bg-slate-500 rounded-full"></span>
+<span>안전빵 (검증된 맛집)</span>
+</div>
+</div>
+<button class="w-full md:w-auto md:min-w-[320px] flex items-center justify-between bg-primary text-background-dark font-black text-xl py-4 px-8 rounded-full shadow-lg shadow-orange-500/20 active:scale-[0.98] transition-all hover:bg-orange-400 hover:shadow-orange-500/30 group">
+<span class="flex flex-col items-start leading-none gap-1 md:hidden">
+<span>맛집 찾기</span>
+<span class="text-xs font-medium opacity-80">점심 • 500m • 안전빵</span>
+</span>
+<span class="hidden md:inline">맛집 찾기</span>
+<div class="bg-black/10 rounded-full p-1.5 group-hover:translate-x-1 transition-transform">
+<span class="material-symbols-outlined !text-2xl block">arrow_forward</span>
+</div>
+</button>
+</div>
+</div>
+</div>
+
+</body></html>
