@@ -20,6 +20,7 @@ type PreviewPoint = {
   lat: number;
   lng: number;
   label?: string;
+  countryCode?: string;
 };
 
 const LocationPicker = dynamic(() => import("./location-picker"), { ssr: false });
@@ -27,6 +28,12 @@ const LocationPicker = dynamic(() => import("./location-picker"), { ssr: false }
 function inferSearchCountry(lat: number, lng: number): string {
   const isKorea = lat >= 33 && lat <= 39.5 && lng >= 124 && lng <= 132;
   return isKorea ? "KR" : "US";
+}
+
+function normalizeCountryCode(input?: string | null): string | undefined {
+  if (!input) return undefined;
+  const code = input.trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(code) ? code : undefined;
 }
 
 function parseLatLng(raw: string): { lat: number; lng: number } | null {
@@ -59,9 +66,9 @@ export default function OnboardingPage() {
     }
   }, []);
 
-  const moveWithPosition = (lat: number, lng: number) => {
+  const moveWithPosition = (lat: number, lng: number, countryCode?: string) => {
     const current = loadFlowState();
-    const searchCountry = inferSearchCountry(lat, lng);
+    const searchCountry = countryCode ?? inferSearchCountry(lat, lng);
     saveFlowState({
       ...current,
       position: { lat, lng },
@@ -105,6 +112,7 @@ export default function OnboardingPage() {
         lat: latLng.lat,
         lng: latLng.lng,
         label: "좌표 검색 결과",
+        countryCode: prev?.countryCode,
       }));
       return;
     }
@@ -125,7 +133,12 @@ export default function OnboardingPage() {
         return;
       }
 
-      setPreview({ lat: data.lat, lng: data.lng, label: data.label });
+      setPreview({
+        lat: data.lat,
+        lng: data.lng,
+        label: data.label,
+        countryCode: normalizeCountryCode(data.country_code),
+      });
     } catch {
       setError("위치 검색 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.");
     } finally {
@@ -139,7 +152,7 @@ export default function OnboardingPage() {
       return;
     }
     setError(null);
-    moveWithPosition(preview.lat, preview.lng);
+    moveWithPosition(preview.lat, preview.lng, preview.countryCode);
   };
 
   return (
@@ -207,6 +220,7 @@ export default function OnboardingPage() {
                           lat: next.lat,
                           lng: next.lng,
                           label: "지도에서 선택한 위치",
+                          countryCode: prev?.countryCode,
                         }))
                       }
                     />

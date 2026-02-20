@@ -10,7 +10,7 @@ export default function FlowHeader({ overlay = false }: FlowHeaderProps) {
       <Link href="/onboarding" className="flow-brand" aria-label="홈으로 이동">
         <img src="/mechu_icon_512x512.png" alt="" className="flow-brand-icon" aria-hidden />
         <span className="flow-brand-wordmark">
-          <img src="/brand/mechu_logo.png" alt="mechu" className="flow-brand-image" />
+          <img src="/brand/mechu_white_logo.webp" alt="mechu" className="flow-brand-image" />
         </span>
       </Link>
 

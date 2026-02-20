@@ -152,6 +152,13 @@ function mapGoogleCategory(types: string[] | undefined): string {
   if (types.includes("cafe")) return "cafe";
   if (types.includes("meal_takeaway") || types.includes("fast_food")) return "fast_food";
   if (types.includes("bar") || types.includes("night_club")) return "western";
+  if (types.includes("chicken_restaurant")) return "chicken";
+  if (types.includes("barbecue_restaurant")) return "bbq";
+  if (types.includes("japanese_restaurant") || types.includes("sushi_restaurant") || types.includes("ramen_restaurant"))
+    return "japanese";
+  if (types.includes("chinese_restaurant")) return "chinese";
+  if (types.includes("korean_restaurant")) return "korean";
+  if (types.includes("noodle_restaurant")) return "noodle";
   if (types.includes("restaurant")) return "restaurant";
   return types[0];
 }
@@ -174,6 +181,83 @@ function rawGoogleCategory(types: string[] | undefined): string {
     types[0];
 
   return preferred.replaceAll("_", " ").trim();
+}
+
+type CategoryHint = {
+  raw: string;
+  category: string;
+};
+
+function inferGoogleCategoryFromText(text: string): CategoryHint | null {
+  const source = text.toLowerCase();
+  if (!source.trim()) return null;
+
+  const hints: Array<{ raw: string; category: string; patterns: RegExp[] }> = [
+    { raw: "ramen", category: "japanese", patterns: [/ramen/, /라멘/, /라면/] },
+    { raw: "sushi", category: "japanese", patterns: [/sushi/, /초밥/, /스시/, /회전초밥/] },
+    { raw: "izakaya", category: "japanese", patterns: [/izakaya/, /이자카야/, /오마카세/] },
+    { raw: "pizza", category: "western", patterns: [/pizza/, /피자/] },
+    { raw: "burger", category: "fast_food", patterns: [/burger/, /버거/, /햄버거/] },
+    { raw: "steak", category: "western", patterns: [/steak/, /스테이크/] },
+    { raw: "pasta", category: "western", patterns: [/pasta/, /파스타/] },
+    { raw: "bbq", category: "bbq", patterns: [/bbq/, /barbecue/, /바베큐/, /고기/, /구이/, /갈비/] },
+    { raw: "chicken", category: "chicken", patterns: [/chicken/, /치킨/, /닭/] },
+    { raw: "street food", category: "street_food", patterns: [/분식/, /떡볶이/, /순대/, /튀김/, /포장마차/] },
+    { raw: "noodle", category: "noodle", patterns: [/noodle/, /국수/, /면/, /우동/, /soba/, /쌀국수/, /pho/] },
+    { raw: "korean", category: "korean", patterns: [/korean/, /한식/, /국밥/, /비빔밥/, /김밥/, /찌개/] },
+    { raw: "chinese", category: "chinese", patterns: [/chinese/, /중식/, /짜장/, /짬뽕/, /마라/] },
+    { raw: "cafe", category: "cafe", patterns: [/cafe/, /coffee/, /카페/, /커피/, /베이커리/, /bakery/] },
+  ];
+
+  for (const hint of hints) {
+    if (hint.patterns.some((pattern) => pattern.test(source))) {
+      return { raw: hint.raw, category: hint.category };
+    }
+  }
+  return null;
+}
+
+function normalizeGoogleTypeLabel(type: string): string {
+  return type.replace(/_restaurant$/, "").replaceAll("_", " ").trim();
+}
+
+function googleCategoryHint(types: string[] | undefined, name?: string, address?: string): CategoryHint | null {
+  if (!types || types.length === 0) {
+    return inferGoogleCategoryFromText(`${name ?? ""} ${address ?? ""}`.trim());
+  }
+
+  const typeMap: Record<string, CategoryHint> = {
+    cafe: { raw: "cafe", category: "cafe" },
+    bakery: { raw: "bakery", category: "cafe" },
+    fast_food: { raw: "fast food", category: "fast_food" },
+    chicken_restaurant: { raw: "chicken", category: "chicken" },
+    barbecue_restaurant: { raw: "bbq", category: "bbq" },
+    korean_restaurant: { raw: "korean", category: "korean" },
+    japanese_restaurant: { raw: "japanese", category: "japanese" },
+    ramen_restaurant: { raw: "ramen", category: "japanese" },
+    sushi_restaurant: { raw: "sushi", category: "japanese" },
+    chinese_restaurant: { raw: "chinese", category: "chinese" },
+    noodle_restaurant: { raw: "noodle", category: "noodle" },
+  };
+
+  for (const type of types) {
+    if (typeMap[type]) return typeMap[type];
+  }
+
+  const specificType = types.find(
+    (type) =>
+      type.endsWith("_restaurant") &&
+      type !== "restaurant" &&
+      type !== "meal_takeaway" &&
+      type !== "meal_delivery" &&
+      type !== "food",
+  );
+  if (specificType) {
+    const normalized = normalizeGoogleTypeLabel(specificType);
+    return { raw: normalized, category: mapGoogleCategory(types) };
+  }
+
+  return inferGoogleCategoryFromText(`${name ?? ""} ${address ?? ""}`.trim());
 }
 
 function mapKakaoCategory(categoryName?: string): string {
@@ -287,15 +371,17 @@ async function fetchGoogleCandidates(req: Required<RecommendationRequest>): Prom
     }
 
     const distance = haversineMeters(req.lat, req.lng, lat, lng);
+    const hint = googleCategoryHint(r.types, name, r.vicinity ?? "");
+    const mappedCategory = hint?.category ?? mapGoogleCategory(r.types);
     out.push({
       place_id: placeId,
       name,
       address: r.vicinity ?? "",
-      raw_category: rawGoogleCategory(r.types),
+      raw_category: hint?.raw ?? rawGoogleCategory(r.types),
       lat,
       lng,
       distance_m: distance,
-      category: mapGoogleCategory(r.types),
+      category: mappedCategory,
       price_level: Math.max(1, Math.min(r.price_level ?? 2, 4)),
       rating: Math.max(0, Math.min(r.rating ?? 4, 5)),
       review_count: Math.max(0, r.user_ratings_total ?? 0),

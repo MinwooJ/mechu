@@ -62,7 +62,17 @@ function FocusSelected({
     if (!selected) return;
 
     const nextZoom = Math.max(map.getZoom(), 15);
-    map.flyTo([selected.lat, selected.lng], nextZoom, { animate: true, duration: 0.35 });
+    const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 980px)").matches;
+    if (!isMobile) {
+      map.flyTo([selected.lat, selected.lng], nextZoom, { animate: true, duration: 0.35 });
+      return;
+    }
+
+    // On mobile, keep the focused marker above the bottom sheet.
+    const markerPoint = map.latLngToContainerPoint([selected.lat, selected.lng]);
+    const upwardOffset = Math.round(Math.min(window.innerHeight * 0.18, 170));
+    const adjustedCenter = map.containerPointToLatLng(L.point(markerPoint.x, markerPoint.y + upwardOffset));
+    map.flyTo(adjustedCenter, nextZoom, { animate: true, duration: 0.35 });
   }, [map, items, selectedPlaceId, focusNonce]);
 
   return null;

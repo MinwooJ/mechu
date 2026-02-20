@@ -767,7 +767,7 @@ a {
 .flow-brand {
   display: inline-flex;
   align-items: center;
-  gap: 0;
+  gap: 8px;
   overflow: visible;
 }
 
@@ -776,23 +776,23 @@ a {
   width: 36px;
   height: 36px;
   object-fit: contain;
-  margin-right: -12px;
+  flex: 0 0 auto;
 }
 
 .flow-brand-wordmark {
   display: inline-flex;
   align-items: center;
+  line-height: 0;
   overflow: visible;
 }
 
 .flow-brand-image {
   display: block;
   width: auto;
-  height: 142px;
+  height: 24px;
   object-fit: contain;
   object-position: left center;
-  margin-left: -40px;
-  filter: brightness(0) invert(1);
+  max-width: min(36vw, 180px);
 }
 
 .flow-nav {
@@ -835,14 +835,13 @@ a {
   }
 
   .flow-brand-image {
-    height: 102px;
-    margin-left: -30px;
+    height: 20px;
+    max-width: min(48vw, 156px);
   }
 
   .flow-brand-icon {
-    width: 30px;
-    height: 30px;
-    margin-right: -9px;
+    width: 28px;
+    height: 28px;
   }
 
   .flow-nav a {
@@ -945,6 +944,9 @@ a {
   min-height: 38px;
   padding: 0 14px;
   border-radius: 999px;
+  white-space: nowrap;
+  word-break: keep-all;
+  min-width: 74px;
 }
 
 .pref-meal-grid {
@@ -1548,7 +1550,7 @@ a {
   inset: 0;
   background: rgba(12, 8, 6, 0.58);
   backdrop-filter: blur(4px);
-  z-index: 80;
+  z-index: 2200;
   display: grid;
   place-items: center;
   padding: 20px;
@@ -1750,14 +1752,13 @@ a {
   }
 
   .results .flow-brand-image {
-    height: 70px;
-    margin-left: -20px;
+    height: 18px;
+    max-width: min(42vw, 150px);
   }
 
   .results .flow-brand-icon {
-    width: 24px;
-    height: 24px;
-    margin-right: -6px;
+    width: 22px;
+    height: 22px;
   }
 
   .preferences {
@@ -1765,13 +1766,13 @@ a {
   }
 
   .preferences .flow-brand-image {
-    margin-left: -30px;
+    height: 20px;
+    max-width: min(48vw, 156px);
   }
 
   .preferences .flow-brand-icon {
-    width: 30px;
-    height: 30px;
-    margin-right: -9px;
+    width: 28px;
+    height: 28px;
   }
 
   .pref-intro {

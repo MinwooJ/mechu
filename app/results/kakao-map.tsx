@@ -75,6 +75,34 @@ export default function KakaoMap({ origin, items, selectedPlaceId, focusNonce, o
         bounds.extend(center);
         const selectedItem = selectedPlaceId ? items.find((item) => item.place_id === selectedPlaceId) : null;
         const selectedLatLng = selectedItem ? new kakao.maps.LatLng(selectedItem.lat, selectedItem.lng) : null;
+        const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 980px)").matches;
+        const upwardOffset = isMobile ? Math.round(Math.min(window.innerHeight * 0.18, 170)) : 0;
+
+        const setFocusCenter = (target: unknown) => {
+          if (!upwardOffset) {
+            (map as unknown as { setCenter?: (latLng: unknown) => void }).setCenter?.(target);
+            return;
+          }
+
+          const projection = (map as unknown as { getProjection?: () => unknown }).getProjection?.() as
+            | {
+                containerPointFromCoords?: (coords: unknown) => { x: number; y: number };
+                coordsFromContainerPoint?: (point: unknown) => unknown;
+              }
+            | undefined;
+          const toPoint = projection?.containerPointFromCoords;
+          const toCoords = projection?.coordsFromContainerPoint;
+
+          if (toPoint && toCoords) {
+            const point = toPoint(target);
+            const shiftedPoint = new kakao.maps.Point(point.x, point.y + upwardOffset);
+            const shiftedCoords = toCoords(shiftedPoint);
+            (map as unknown as { setCenter?: (latLng: unknown) => void }).setCenter?.(shiftedCoords);
+            return;
+          }
+
+          (map as unknown as { setCenter?: (latLng: unknown) => void }).setCenter?.(target);
+        };
 
         const originMarker = new kakao.maps.Marker({
           map,
@@ -119,13 +147,19 @@ export default function KakaoMap({ origin, items, selectedPlaceId, focusNonce, o
           });
         });
 
-        map.setBounds(bounds);
-        (map as unknown as { setCenter?: (latLng: unknown) => void }).setCenter?.(selectedLatLng ?? center);
+        if (selectedLatLng) {
+          setFocusCenter(selectedLatLng);
+        } else {
+          map.setBounds(bounds);
+        }
         resizeTimer = setTimeout(() => {
           if (disposed) return;
           (window.kakao?.maps.event as unknown as { trigger?: (target: unknown, type: string) => void })?.trigger?.(map, "resize");
-          map.setBounds(bounds);
-          (map as unknown as { setCenter?: (latLng: unknown) => void }).setCenter?.(selectedLatLng ?? center);
+          if (selectedLatLng) {
+            setFocusCenter(selectedLatLng);
+          } else {
+            map.setBounds(bounds);
+          }
         }, 90);
       })
       .catch(() => {

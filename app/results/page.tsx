@@ -29,6 +29,7 @@ type PreviewPoint = {
   lat: number;
   lng: number;
   label?: string;
+  countryCode?: string;
 };
 
 const InteractiveMap = dynamic(() => import("./interactive-map"), { ssr: false });
@@ -89,6 +90,12 @@ function formatRadius(radiusMeters: number): string {
 function inferSearchCountry(lat: number, lng: number): string {
   const isKorea = lat >= 33 && lat <= 39.5 && lng >= 124 && lng <= 132;
   return isKorea ? "KR" : "US";
+}
+
+function normalizeCountryCode(input?: string | null): string | undefined {
+  if (!input) return undefined;
+  const code = input.trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(code) ? code : undefined;
 }
 
 function parseLatLng(raw: string): { lat: number; lng: number } | null {
@@ -259,7 +266,16 @@ export default function ResultsPage() {
   const openLocationEditor = () => {
     const flow = loadFlowState();
     const base = flow.position ?? origin;
-    setLocationPreview(base ? { lat: base.lat, lng: base.lng, label: "현재 검색 기준 위치" } : null);
+    setLocationPreview(
+      base
+        ? {
+            lat: base.lat,
+            lng: base.lng,
+            label: "현재 검색 기준 위치",
+            countryCode: normalizeCountryCode(flow.countryCode),
+          }
+        : null,
+    );
     setLocationQuery("");
     setLocationError(null);
     setFilterOpen(false);
@@ -280,6 +296,7 @@ export default function ResultsPage() {
         lat: latLng.lat,
         lng: latLng.lng,
         label: "좌표 검색 결과",
+        countryCode: locationPreview?.countryCode,
       });
       return;
     }
@@ -298,7 +315,12 @@ export default function ResultsPage() {
         return;
       }
 
-      setLocationPreview({ lat: data.lat, lng: data.lng, label: data.label ?? "검색 결과 위치" });
+      setLocationPreview({
+        lat: data.lat,
+        lng: data.lng,
+        label: data.label ?? "검색 결과 위치",
+        countryCode: normalizeCountryCode(data.country_code),
+      });
     } catch {
       setLocationError("위치 검색 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.");
     } finally {
@@ -321,6 +343,7 @@ export default function ResultsPage() {
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
           label: "현재 위치",
+          countryCode: undefined,
         });
       },
       () => {
@@ -337,7 +360,7 @@ export default function ResultsPage() {
       return;
     }
 
-    const nextCountry = inferSearchCountry(locationPreview.lat, locationPreview.lng);
+    const nextCountry = locationPreview.countryCode ?? inferSearchCountry(locationPreview.lat, locationPreview.lng);
     const flow = loadFlowState();
     saveFlowState({
       ...flow,
@@ -644,6 +667,7 @@ export default function ResultsPage() {
                           lat: next.lat,
                           lng: next.lng,
                           label: "지도에서 선택한 위치",
+                          countryCode: locationPreview?.countryCode,
                         })
                       }
                     />
