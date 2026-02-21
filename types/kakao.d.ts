@@ -10,6 +10,10 @@ declare global {
         Point: new (x: number, y: number) => unknown;
         Map: new (container: HTMLElement, options: { center: unknown; level: number }) => {
           setBounds(bounds: unknown): void;
+          setCenter(latlng: unknown): void;
+          panBy(x: number, y: number): void;
+          setDraggable(enabled: boolean): void;
+          setZoomable(enabled: boolean): void;
         };
         MarkerImage: new (src: string, size: unknown, options?: { offset?: unknown }) => unknown;
         Marker: new (options: {
@@ -21,7 +25,7 @@ declare global {
         }) => {
           setMap(map: unknown | null): void;
         };
-        InfoWindow: new (options: { content: string }) => {
+        InfoWindow: new (options: { content: string | Node }) => {
           open(map: unknown, marker: unknown): void;
           close(): void;
         };

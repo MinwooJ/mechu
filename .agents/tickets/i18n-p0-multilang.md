@@ -1,0 +1,35 @@
+[Ticket]
+- id: i18n-p0-multilang
+- lane: multi
+- owner-agent: orchestrator
+- goal: ko/en locale-prefix i18n P0 rollout for onboarding/preferences/results/status and shared header.
+- editable-paths:
+  - app/**
+  - lib/i18n/**
+  - middleware.ts
+  - tests/e2e/**
+  - docs/i18n-guide.md
+  - README.md
+- non-goals:
+  - Additional locales beyond ko/en
+  - SEO hreflang/sitemap expansion
+  - Ads/Search Console setup
+- assumptions:
+  - Default locale is en
+  - Existing API contracts remain unchanged
+- clarification-questions:
+  - None (request doc fixed scope)
+- approval-status: approved
+- approval-note: User asked to execute request from `.agents/requests/multi_lang_request.md`.
+- done-criteria:
+  - Locale-prefixed routing and language switcher work
+  - Target pages use message dictionaries
+  - html lang follows locale
+  - tsc/build/cf:build/e2e pass
+- verification:
+  - npx tsc --noEmit
+  - npm run build
+  - npm run cf:build
+  - npm run test:e2e
+- risks:
+  - Legacy non-locale routes still exist for compatibility and are middleware-redirected.

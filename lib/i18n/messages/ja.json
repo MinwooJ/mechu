@@ -1,0 +1,198 @@
+{
+  "common": {
+    "home": "ホーム",
+    "close": "閉じる",
+    "cancel": "キャンセル",
+    "search": "検索",
+    "searching": "検索中...",
+    "currentLocation": "現在地",
+    "checking": "確認中...",
+    "loading": "読み込み中...",
+    "continue": "この位置で続行"
+  },
+  "flow": {
+    "brandHomeAria": "ホームへ移動",
+    "langSwitcherAria": "言語を切り替え"
+  },
+  "mode": {
+    "lunch": "ランチ",
+    "dinner": "ディナー",
+    "lunchTag": "ランチおすすめ",
+    "dinnerTag": "ディナーおすすめ"
+  },
+  "onboarding": {
+    "chip": "DISCOVER LOCAL GEMS",
+    "titleTop": "ランチどうする？",
+    "titleBottom": "ディナーどうする？",
+    "descriptionLine1": "近くの隠れた人気店を見つけます。",
+    "descriptionLine2": "今日のメニュー選びをもっと簡単に。",
+    "allowLocation": "現在地を許可",
+    "checkingLocation": "位置情報を確認中...",
+    "manualOpen": "位置を手入力",
+    "manualClose": "手入力を閉じる",
+    "manualLabel": "住所 / 都市名 / 座標(lat,lng)",
+    "manualPlaceholder": "例: Shibuya Station または 35.659, 139.700",
+    "manualSearch": "位置を検索",
+    "manualSearching": "検索中...",
+    "manualMapSelected": "地図で選択した位置",
+    "manualRecent": "最近使った位置",
+    "manualDefault": "デフォルト位置",
+    "manualCoordResult": "座標検索結果",
+    "privacy": "位置情報はおすすめ表示の目的にのみ使用されます。",
+    "errorNoGeolocation": "このブラウザは位置情報機能に対応していません。",
+    "errorPermission": "周辺のおすすめ表示には位置情報の許可が必要です。",
+    "errorManualTooShort": "住所・都市名・座標を入力してください。",
+    "errorMissingApi": "Google Maps APIキーがないため、テキスト検索は使えません。",
+    "errorNotFound": "場所が見つかりません。別のキーワードでお試しください。",
+    "errorSearchFailed": "位置検索中にエラーが発生しました。もう一度お試しください。",
+    "errorNoPreview": "先に位置を検索してください。"
+  },
+  "locationPicker": {
+    "hint": "地図をクリックするか、ピンをドラッグして位置を選んでください。"
+  },
+  "preferences": {
+    "title": "いつ食べますか？",
+    "subtitle": "今日の気分に合うお店を探します。",
+    "reset": "リセット",
+    "meal": {
+      "lunchBadge": "LIGHT & FRESH",
+      "lunchName": "ランチ",
+      "lunchDesc": "軽くて元気が出る一皿",
+      "dinnerBadge": "MOOD & CHILL",
+      "dinnerName": "ディナー",
+      "dinnerDesc": "一日の終わりにやさしいご褒美"
+    },
+    "radius": {
+      "title": "📍 検索範囲",
+      "desc": "選択した位置からの検索半径",
+      "within": "{radius} 以内"
+    },
+    "vibe": {
+      "title": "🎲 今日のバイブ",
+      "desc": "好みのスタイルを選択（ランダム要素あり）",
+      "stableTitle": "安定重視",
+      "stableA": "評価4.0以上",
+      "stableB": "定番の人気店",
+      "balancedTitle": "今話題",
+      "balancedA": "SNSで人気",
+      "balancedB": "待ち時間あり",
+      "exploreTitle": "冒険モード",
+      "exploreA": "ローカル名店",
+      "exploreB": "穴場を発見"
+    },
+    "selectedLabel": "選択中の条件",
+    "find": "お店を探す"
+  },
+  "results": {
+    "topPicks": "Top 3 Picks",
+    "actionChangeLocation": "位置を変更",
+    "actionChangeFilters": "条件を変更",
+    "actionReroll": "引き直し",
+    "mapLoading": "結果を読み込み中です。",
+    "mapFocusOriginAria": "検索基準位置へ移動",
+    "mapHintKakao": "韓国ではKakao Mapを表示します。M: 基準位置 · オレンジ: おすすめ店",
+    "mapHintOsm": "M: 基準位置 · 1〜3: おすすめ店。地図をドラッグ/拡大して周辺を探索できます。",
+    "mapLoadFailedFallback": "Kakao Mapの読み込みに失敗しました。OSMに切り替えます。",
+    "sheetGrabberAria": "結果パネルのサイズ調整",
+    "cardNoAddress": "住所情報なし",
+    "cardFallbackCategory": "その他",
+    "cardReasonPending": "おすすめ理由を準備中",
+    "cardMatch": "#{rank} MATCH",
+    "linkKakao": "Kakaoマップ",
+    "linkNaver": "Naverマップ",
+    "linkMap": "地図で見る",
+    "linkKakaoLong": "Kakaoマップで開く",
+    "linkNaverLong": "Naverマップで開く",
+    "linkGoogleLong": "Googleマップで開く",
+    "priceFallback": "価格情報なし",
+    "editor": {
+      "filterTitle": "検索条件を調整",
+      "mealTitle": "いつ食べますか？",
+      "radiusTitle": "検索範囲",
+      "radiusWithin": "{radius} 以内",
+      "vibeTitle": "今日のバイブ",
+      "apply": "適用して再検索",
+      "locationTitle": "検索位置を変更",
+      "searchTitle": "住所 / 都市名 / 座標(lat,lng)",
+      "searchPlaceholder": "例: Shinjuku Station または 35.690, 139.700",
+      "mapPickTitle": "地図で位置を選択",
+      "mapPickEmpty": "先に検索するか、現在地を押して基準位置を設定してください。",
+      "researchWithLocation": "この位置で再検索"
+    },
+    "location": {
+      "base": "現在の検索基準位置",
+      "coordResult": "座標検索結果",
+      "searchResult": "検索結果位置",
+      "current": "現在地",
+      "pickedOnMap": "地図で選択した位置"
+    },
+    "error": {
+      "queryTooShort": "住所・都市名・座標を入力してください。",
+      "missingApi": "Google Maps APIキーがないため、テキスト検索が制限されています。",
+      "notFound": "場所が見つかりません。別のキーワードでお試しください。",
+      "searchFailed": "位置検索中にエラーが発生しました。もう一度お試しください。",
+      "geolocationUnsupported": "このブラウザは位置情報機能に対応していません。",
+      "geolocationFailed": "現在地を取得できませんでした。権限をご確認ください。",
+      "locationPreviewRequired": "地図で位置を選ぶか、検索結果を先に選択してください。"
+    },
+    "loading": {
+      "msg1": "お店を探しています...",
+      "msg2": "近くの穴場を探索中...",
+      "msg3": "今日のメニューを選定中...",
+      "msg4": "本日のおすすめを準備中...",
+      "msg5": "グルメレーダー起動中...",
+      "msg6": "あなた向けに厳選中...",
+      "msg7": "空腹ミッションを解決中...",
+      "msg8": "グルメデータを分析中...",
+      "msg9": "次の一食を探しています...",
+      "msg10": "あなた好みをロックオン中..."
+    },
+    "reason": {
+      "near": "現在地の近く",
+      "time": "選択した時間帯に合う",
+      "openNow": "営業中",
+      "highRated": "高評価",
+      "popular": "今人気",
+      "hiddenGem": "穴場のおすすめ"
+    },
+    "vibe": {
+      "stable": "安定重視",
+      "balanced": "今話題",
+      "explore": "冒険モード"
+    },
+    "vibeDesc": {
+      "stable": "定番の人気店中心",
+      "balanced": "人気とランダムのバランス",
+      "explore": "ローカルの穴場を探索"
+    }
+  },
+  "status": {
+    "chip": "STATUS",
+    "need_location": {
+      "title": "位置情報の許可が必要です",
+      "body": "周辺のおすすめ表示には位置情報の許可が必要です。",
+      "primary": "オンボーディングへ"
+    },
+    "unsupported": {
+      "title": "この地域はまだ準備中です",
+      "body": "現在この地域は未対応です。設定を変更して再試行してください。",
+      "primary": "設定を変更"
+    },
+    "empty": {
+      "title": "この範囲では飲食店が見つかりませんでした。",
+      "body": "現在の条件では候補がありません。範囲を広げるか位置を変更してください。",
+      "primary": "条件を調整"
+    },
+    "error": {
+      "title": "接続が不安定です",
+      "body": "ネットワーク状態を確認して再試行してください。",
+      "primary": "再試行"
+    },
+    "viewResultsAgain": "結果を再表示",
+    "changeLocation": "位置を変更",
+    "helpTitle": "ヘルプ",
+    "help1": "位置情報を許可するとおすすめ精度が向上します。",
+    "help2": "500mで少ない場合は1kmまたは3kmを試してください。",
+    "help3": "探索モードはローカルの穴場をより多く表示します。"
+  }
+}

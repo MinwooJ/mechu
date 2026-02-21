@@ -5,7 +5,10 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
 import FlowHeader from "@/app/components/flow-header";
-import { getSessionId, loadFlowState, saveFlowState } from "@/lib/flow/state";
+import { getSessionId, loadFlowState, saveFlowState, type FlowState } from "@/lib/flow/state";
+import { inferSearchCountry, normalizeCountryCode, parseLatLng } from "@/lib/geo/location";
+import { useLocale, useLocaleHref, useT } from "@/lib/i18n/client";
+import { formatDistance, formatRadius } from "@/lib/i18n/format";
 import type {
   AvailabilityResponse,
   RandomnessLevel,
@@ -38,24 +41,107 @@ const KakaoMap = dynamic(() => import("./kakao-map"), { ssr: false });
 const LocationPicker = dynamic(() => import("@/app/onboarding/location-picker"), { ssr: false });
 
 const HAS_KAKAO_KEY = Boolean(process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY);
-const VIBE_OPTIONS: Array<{ value: RandomnessLevel; title: string; desc: string }> = [
-  { value: "stable", title: "안전빵", desc: "검증된 맛집 중심" },
-  { value: "balanced", title: "요즘 핫한", desc: "인기+랜덤 균형" },
-  { value: "explore", title: "모험가", desc: "숨은 로컬 탐색" },
+const VIBE_OPTIONS: Array<{ value: RandomnessLevel; titleKey: string; descKey: string }> = [
+  { value: "stable", titleKey: "results.vibe.stable", descKey: "results.vibeDesc.stable" },
+  { value: "balanced", titleKey: "results.vibe.balanced", descKey: "results.vibeDesc.balanced" },
+  { value: "explore", titleKey: "results.vibe.explore", descKey: "results.vibeDesc.explore" },
 ];
 
-const LOADING_MESSAGES: string[] = [
-  "맛집 찾는 중...",
-  "근처 숨은 맛집 탐색 중...",
-  "메뉴 고르는 중...",
-  "오늘의 맛집 소환 중...",
-  "미식 레이더 가동 중...",
-  "당신만을 위한 맛집 선별 중...",
-  "배고픔 해결사 출동 중...",
-  "맛집 데이터 분석 중...",
-  "최고의 한 끼를 찾는 중...",
-  "입맛 저격 준비 중...",
-];
+const LOADING_MESSAGE_KEYS = [
+  "results.loading.msg1",
+  "results.loading.msg2",
+  "results.loading.msg3",
+  "results.loading.msg4",
+  "results.loading.msg5",
+  "results.loading.msg6",
+  "results.loading.msg7",
+  "results.loading.msg8",
+  "results.loading.msg9",
+  "results.loading.msg10",
+] as const;
+const UNKNOWN_REASON_LOGGED = new Set<string>();
+const RESULTS_CACHE_KEY = "meal_reco_results_cache_v1";
+const RESULTS_CACHE_TTL_MS = 10 * 60 * 1000;
+const RESULTS_CACHE_MAX_ENTRIES = 8;
+
+type ResultsCacheEntry = {
+  savedAt: number;
+  items: RecommendationItem[];
+  selectedPlaceId: string | null;
+};
+
+type ResultsCacheStore = Record<string, ResultsCacheEntry>;
+
+function buildResultsFlowKey(flow: FlowState): string | null {
+  if (!flow.position) return null;
+
+  const country = normalizeCountryCode(flow.countryCode) ?? "US";
+  return [
+    country,
+    flow.mode,
+    String(flow.radius),
+    flow.randomness,
+    flow.position.lat.toFixed(5),
+    flow.position.lng.toFixed(5),
+  ].join("|");
+}
+
+function readResultsCache(flowKey: string): ResultsCacheEntry | null {
+  if (typeof window === "undefined") return null;
+
+  const raw = window.sessionStorage.getItem(RESULTS_CACHE_KEY);
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as ResultsCacheStore;
+    const entry = parsed[flowKey];
+    if (!entry) return null;
+
+    if (Date.now() - entry.savedAt > RESULTS_CACHE_TTL_MS) {
+      delete parsed[flowKey];
+      window.sessionStorage.setItem(RESULTS_CACHE_KEY, JSON.stringify(parsed));
+      return null;
+    }
+
+    return entry;
+  } catch {
+    return null;
+  }
+}
+
+function writeResultsCache(flowKey: string, items: RecommendationItem[], selectedPlaceId: string | null): void {
+  if (typeof window === "undefined") return;
+
+  let store: ResultsCacheStore = {};
+  try {
+    const raw = window.sessionStorage.getItem(RESULTS_CACHE_KEY);
+    if (raw) {
+      store = JSON.parse(raw) as ResultsCacheStore;
+    }
+  } catch {
+    store = {};
+  }
+
+  const now = Date.now();
+  for (const [key, entry] of Object.entries(store)) {
+    if (!entry || now - entry.savedAt > RESULTS_CACHE_TTL_MS) {
+      delete store[key];
+    }
+  }
+
+  store[flowKey] = {
+    savedAt: now,
+    items: items.slice(0, 3),
+    selectedPlaceId,
+  };
+
+  const sortedKeys = Object.keys(store).sort((a, b) => (store[b]?.savedAt ?? 0) - (store[a]?.savedAt ?? 0));
+  for (const key of sortedKeys.slice(RESULTS_CACHE_MAX_ENTRIES)) {
+    delete store[key];
+  }
+
+  window.sessionStorage.setItem(RESULTS_CACHE_KEY, JSON.stringify(store));
+}
 
 function naverSearchLink(item: RecommendationItem): string {
   const queryText = [item.name, item.address].filter(Boolean).join(" ");
@@ -75,53 +161,24 @@ function googlePlaceLink(item: RecommendationItem): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.name)}&query_place_id=${encodeURIComponent(item.place_id)}`;
 }
 
-function localizeReason(reason: string): string {
+function localizeReason(reason: string, t: (key: string) => string): string {
   const table: Record<string, string> = {
-    "Near your location": "내 위치 근처",
-    "Fits your time-of-day preference": "선택한 시간대와 잘 맞아요",
-    "Open now": "영업중",
-    "Highly rated": "평점이 높아요",
-    "Popular now": "요즘 인기 많은 곳",
-    "Hidden gem pick": "숨은 보석 같은 곳",
+    "Near your location": t("results.reason.near"),
+    "Fits your time-of-day preference": t("results.reason.time"),
+    "Open now": t("results.reason.openNow"),
+    "Highly rated": t("results.reason.highRated"),
+    "Popular now": t("results.reason.popular"),
+    "Hidden gem pick": t("results.reason.hiddenGem"),
   };
-  return table[reason] ?? reason;
-}
+  const translated = table[reason];
+  if (translated) return translated;
 
-function formatDistance(distanceMeters: number): string {
-  if (distanceMeters >= 1000) {
-    return `${(distanceMeters / 1000).toFixed(distanceMeters % 1000 === 0 ? 0 : 1)}km`;
+  if (!UNKNOWN_REASON_LOGGED.has(reason)) {
+    UNKNOWN_REASON_LOGGED.add(reason);
+    console.warn(`[i18n] Unmapped recommendation reason: "${reason}"`);
   }
-  return `${distanceMeters}m`;
-}
 
-function formatRadius(radiusMeters: number): string {
-  if (radiusMeters >= 1000) {
-    return `${(radiusMeters / 1000).toFixed(radiusMeters % 1000 === 0 ? 0 : 1)}km`;
-  }
-  return `${radiusMeters}m`;
-}
-
-function inferSearchCountry(lat: number, lng: number): string {
-  const isKorea = lat >= 33 && lat <= 39.5 && lng >= 124 && lng <= 132;
-  return isKorea ? "KR" : "US";
-}
-
-function normalizeCountryCode(input?: string | null): string | undefined {
-  if (!input) return undefined;
-  const code = input.trim().toUpperCase();
-  return /^[A-Z]{2}$/.test(code) ? code : undefined;
-}
-
-function parseLatLng(raw: string): { lat: number; lng: number } | null {
-  const match = raw.match(/^\s*(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*$/);
-  if (!match) return null;
-
-  const lat = Number(match[1]);
-  const lng = Number(match[2]);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
-
-  return { lat, lng };
+  return reason;
 }
 
 function rubberBand(offset: number, dimension: number): number {
@@ -144,6 +201,9 @@ function getSafeAreaBottom(): number {
 
 export default function ResultsPage() {
   const router = useRouter();
+  const locale = useLocale();
+  const t = useT();
+  const toLocale = useLocaleHref();
   const [items, setItems] = useState<RecommendationItem[]>([]);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [focusNonce, setFocusNonce] = useState(0);
@@ -170,6 +230,7 @@ export default function ResultsPage() {
   const [isMobileViewport, setIsMobileViewport] = useState<boolean>(() =>
     typeof window !== "undefined" ? window.matchMedia("(max-width: 980px)").matches : false,
   );
+  const itemsRef = useRef<RecommendationItem[]>([]);
   const dragStartYRef = useRef<number | null>(null);
   const dragMovedRef = useRef(false);
   const dragStartInStickyRef = useRef(false);
@@ -184,21 +245,39 @@ export default function ResultsPage() {
   const lastPointerYRef = useRef(0);
   const lastPointerTimeRef = useRef(0);
   const dragVelocityRef = useRef(0);
+  const loadingMessages = useMemo(() => LOADING_MESSAGE_KEYS.map((key) => t(key)), [t]);
   const useKrLinks = countryCode === "KR";
-  const modeLabel = flowMode === "dinner" ? "저메추" : "점메추";
-  const radiusLabel = formatRadius(flowRadius);
-  const vibeLabel = VIBE_OPTIONS.find((v) => v.value === flowRandomness)?.title ?? "요즘 핫한";
+  const modeLabel = flowMode === "dinner" ? t("mode.dinnerTag") : t("mode.lunchTag");
+  const radiusLabel = formatRadius(flowRadius, locale);
+  const vibeLabel = t(VIBE_OPTIONS.find((v) => v.value === flowRandomness)?.titleKey ?? "results.vibe.balanced");
 
   const selected = useMemo(() => {
     if (!selectedPlaceId) return items[0] ?? null;
     return items.find((item) => item.place_id === selectedPlaceId) ?? items[0] ?? null;
   }, [items, selectedPlaceId]);
 
-  const loadResults = async () => {
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  const applyRecommendations = useCallback((recommendations: RecommendationItem[], preferredPlaceId?: string | null) => {
+    const top3 = recommendations.slice(0, 3);
+    const defaultSelected = top3[0]?.place_id ?? null;
+    const selectedId =
+      preferredPlaceId && top3.some((item) => item.place_id === preferredPlaceId) ? preferredPlaceId : defaultSelected;
+
+    setItems(top3);
+    setSelectedPlaceId(selectedId);
+    setMapFocusTarget("selected");
+    setFocusNonce((prev) => prev + 1);
+    return { top3, selectedId };
+  }, []);
+
+  const loadResults = async (options?: { forceRefresh?: boolean }) => {
     const flow = loadFlowState();
 
     if (!flow.position) {
-      router.replace("/status?kind=need_location");
+      router.replace(toLocale("/status?kind=need_location"));
       return;
     }
 
@@ -209,8 +288,20 @@ export default function ResultsPage() {
     setFlowRandomness(flow.randomness);
     const useKakao = HAS_KAKAO_KEY && flow.countryCode === "KR";
     setProvider(useKakao ? "kakao" : "osm");
+
+    const flowKey = buildResultsFlowKey(flow);
+    const forceRefresh = options?.forceRefresh ?? false;
+    if (!forceRefresh && flowKey) {
+      const cached = readResultsCache(flowKey);
+      if (cached && cached.items.length > 0) {
+        applyRecommendations(cached.items, cached.selectedPlaceId);
+        setLoading(false);
+        return;
+      }
+    }
+
     setLoading(true);
-    setLoadingMessage(LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)]);
+    setLoadingMessage(loadingMessages[Math.floor(Math.random() * loadingMessages.length)] ?? t("common.loading"));
 
     try {
       const availability = await fetch(`/api/availability?country_code=${flow.countryCode}`).then(
@@ -218,7 +309,7 @@ export default function ResultsPage() {
       );
 
       if (!availability.supported) {
-        router.replace("/status?kind=unsupported");
+        router.replace(toLocale("/status?kind=unsupported"));
         return;
       }
 
@@ -242,23 +333,22 @@ export default function ResultsPage() {
       }
 
       if (data.status === "unsupported_region") {
-        router.replace("/status?kind=unsupported");
+        router.replace(toLocale("/status?kind=unsupported"));
         return;
       }
       if (data.status === "source_error") {
-        router.replace("/status?kind=error");
+        router.replace(toLocale("/status?kind=error"));
         return;
       }
       if (data.recommendations.length === 0) {
-        router.replace("/status?kind=empty");
+        router.replace(toLocale("/status?kind=empty"));
         return;
       }
 
-      const top3 = data.recommendations.slice(0, 3);
-      setItems(top3);
-      setSelectedPlaceId(top3[0]?.place_id ?? null);
-      setMapFocusTarget("selected");
-      setFocusNonce((prev) => prev + 1);
+      const applied = applyRecommendations(data.recommendations);
+      if (flowKey) {
+        writeResultsCache(flowKey, applied.top3, applied.selectedId);
+      }
 
       void fetch("/api/events", {
         method: "POST",
@@ -273,14 +363,14 @@ export default function ResultsPage() {
         // Logging failure should not block showing recommendations.
       });
     } catch {
-      router.replace("/status?kind=error");
+      router.replace(toLocale("/status?kind=error"));
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadResults();
+    void loadResults();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -316,10 +406,10 @@ export default function ResultsPage() {
   useEffect(() => {
     if (!loading) return;
     const interval = setInterval(() => {
-      setLoadingMessage(LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)]);
+      setLoadingMessage(loadingMessages[Math.floor(Math.random() * loadingMessages.length)] ?? t("common.loading"));
     }, 2500);
     return () => clearInterval(interval);
-  }, [loading]);
+  }, [loading, loadingMessages, t]);
 
   const computeSnapPoints = useCallback(() => {
     const vh = window.innerHeight;
@@ -426,7 +516,7 @@ export default function ResultsPage() {
     setSelectedPlaceId(null);
     setMapFocusTarget("selected");
     setFocusNonce((prev) => prev + 1);
-    loadResults();
+    void loadResults({ forceRefresh: true });
   };
 
   const openFilterEditor = () => {
@@ -450,7 +540,7 @@ export default function ResultsPage() {
     setSelectedPlaceId(null);
     setMapFocusTarget("selected");
     setFocusNonce((prev) => prev + 1);
-    loadResults();
+    void loadResults({ forceRefresh: true });
   };
 
   const openLocationEditor = () => {
@@ -461,7 +551,7 @@ export default function ResultsPage() {
         ? {
             lat: base.lat,
             lng: base.lng,
-            label: "현재 검색 기준 위치",
+            label: t("results.location.base"),
             countryCode: normalizeCountryCode(flow.countryCode),
           }
         : null,
@@ -475,7 +565,7 @@ export default function ResultsPage() {
   const searchLocation = async () => {
     const q = locationQuery.trim();
     if (q.length < 2) {
-      setLocationError("주소, 도시명, 또는 좌표를 입력해 주세요.");
+      setLocationError(t("results.error.queryTooShort"));
       return;
     }
 
@@ -485,7 +575,7 @@ export default function ResultsPage() {
       setLocationPreview({
         lat: latLng.lat,
         lng: latLng.lng,
-        label: "좌표 검색 결과",
+        label: t("results.location.coordResult"),
         countryCode: undefined,
       });
       return;
@@ -498,9 +588,9 @@ export default function ResultsPage() {
       const data = (await response.json()) as GeocodeResponse;
       if (!response.ok || !data.ok || typeof data.lat !== "number" || typeof data.lng !== "number") {
         if (data.reason === "missing_api_key") {
-          setLocationError("Google Maps API 키가 없어 텍스트 검색이 제한됩니다.");
+          setLocationError(t("results.error.missingApi"));
         } else {
-          setLocationError("위치를 찾지 못했어요. 다른 키워드로 시도해 주세요.");
+          setLocationError(t("results.error.notFound"));
         }
         return;
       }
@@ -508,11 +598,11 @@ export default function ResultsPage() {
       setLocationPreview({
         lat: data.lat,
         lng: data.lng,
-        label: data.label ?? "검색 결과 위치",
+        label: data.label ?? t("results.location.searchResult"),
         countryCode: normalizeCountryCode(data.country_code),
       });
     } catch {
-      setLocationError("위치 검색 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.");
+      setLocationError(t("results.error.searchFailed"));
     } finally {
       setLocationLoading(false);
     }
@@ -520,7 +610,7 @@ export default function ResultsPage() {
 
   const useCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setLocationError("브라우저에서 위치 기능을 지원하지 않아요.");
+      setLocationError(t("results.error.geolocationUnsupported"));
       return;
     }
 
@@ -532,13 +622,13 @@ export default function ResultsPage() {
         setLocationPreview({
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
-          label: "현재 위치",
+          label: t("results.location.current"),
           countryCode: undefined,
         });
       },
       () => {
         setGeolocationLoading(false);
-        setLocationError("현재 위치를 가져오지 못했어요. 권한을 확인해 주세요.");
+        setLocationError(t("results.error.geolocationFailed"));
       },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 30000 },
     );
@@ -546,7 +636,7 @@ export default function ResultsPage() {
 
   const applyLocationChanges = async () => {
     if (!locationPreview) {
-      setLocationError("지도로 위치를 찍거나 검색으로 위치를 선택해 주세요.");
+      setLocationError(t("results.error.locationPreviewRequired"));
       return;
     }
 
@@ -576,7 +666,7 @@ export default function ResultsPage() {
     setSelectedPlaceId(null);
     setMapFocusTarget("selected");
     setFocusNonce((prev) => prev + 1);
-    loadResults();
+    void loadResults({ forceRefresh: true });
   };
 
   const beginSheetDrag = (
@@ -713,6 +803,11 @@ export default function ResultsPage() {
     setMapFocusTarget("selected");
     setFocusNonce((prev) => prev + 1);
     setSheetSnap((prev) => (prev === "expanded" ? "half" : prev));
+
+    const flowKey = buildResultsFlowKey(loadFlowState());
+    if (flowKey && itemsRef.current.length > 0) {
+      writeResultsCache(flowKey, itemsRef.current, placeId);
+    }
   }, []);
 
   const handleKakaoLoadFail = useCallback(() => setProvider("osm"), []);
@@ -732,15 +827,21 @@ export default function ResultsPage() {
 
       <header className="result-top section-shell">
         <div className="result-heading">
-          <h1>Top 3 Picks</h1>
+          <h1>{t("results.topPicks")}</h1>
           <p className="result-subtitle">
             {modeLabel} · {radiusLabel} · {vibeLabel}
           </p>
         </div>
         <div className="result-actions-top">
-          <button className="result-action-btn secondary" onClick={openLocationEditor}>위치 변경</button>
-          <button className="result-action-btn secondary" onClick={openFilterEditor}>조건 변경</button>
-          <button className="result-action-btn primary" onClick={reroll} disabled={loading}>{loading ? "로딩..." : "다시뽑기"}</button>
+          <button className="result-action-btn secondary" onClick={openLocationEditor}>
+            {t("results.actionChangeLocation")}
+          </button>
+          <button className="result-action-btn secondary" onClick={openFilterEditor}>
+            {t("results.actionChangeFilters")}
+          </button>
+          <button className="result-action-btn primary" onClick={reroll} disabled={loading}>
+            {loading ? t("common.loading") : t("results.actionReroll")}
+          </button>
         </div>
       </header>
 
@@ -757,6 +858,7 @@ export default function ResultsPage() {
                     mapFocusTarget={mapFocusTarget}
                     focusNonce={focusNonce}
                     sheetSnap={sheetSnap}
+                    locale={locale}
                     onSelect={selectPlace}
                     onLoadFail={handleKakaoLoadFail}
                   />
@@ -768,6 +870,7 @@ export default function ResultsPage() {
                     mapFocusTarget={mapFocusTarget}
                     focusNonce={focusNonce}
                     sheetSnap={sheetSnap}
+                    locale={locale}
                     onSelect={selectPlace}
                   />
                 )}
@@ -776,7 +879,7 @@ export default function ResultsPage() {
                   type="button"
                   className="map-origin-btn"
                   onClick={focusOrigin}
-                  aria-label="검색 기준 위치로 이동"
+                  aria-label={t("results.mapFocusOriginAria")}
                 >
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                     <circle cx="10" cy="10" r="4" fill="#f48c25" />
@@ -789,12 +892,12 @@ export default function ResultsPage() {
               </div>
               <p className="muted">
                 {provider === "kakao"
-                  ? "한국에서는 Kakao Map으로 표시됩니다. M: 내 위치 · 주황 포인트: 추천 식당"
-                  : "M: 내 위치 · 1~3: 추천 식당. 지도를 드래그/확대해 주변을 직접 탐색할 수 있어요."}
+                  ? t("results.mapHintKakao")
+                  : t("results.mapHintOsm")}
               </p>
             </div>
           ) : (
-            <div className="map-empty">결과를 불러오는 중입니다.</div>
+            <div className="map-empty">{t("results.mapLoading")}</div>
           )}
         </article>
 
@@ -814,15 +917,21 @@ export default function ResultsPage() {
               onPointerMove={onGrabberPointerMove}
               onPointerUp={onGrabberPointerUp}
               onPointerCancel={onGrabberPointerCancel}
-              aria-label="결과 패널 크기 조절"
+              aria-label={t("results.sheetGrabberAria")}
             />
             <div className="mobile-sheet-head">
-              <h2>Top 3 Picks</h2>
+              <h2>{t("results.topPicks")}</h2>
               <p>{modeLabel} · {radiusLabel} · {vibeLabel}</p>
               <div className="mobile-sheet-actions">
-                <button className="result-action-btn secondary" onClick={openLocationEditor}>위치 변경</button>
-                <button className="result-action-btn secondary" onClick={openFilterEditor}>조건 변경</button>
-                <button className="result-action-btn primary" onClick={reroll} disabled={loading}>{loading ? "로딩..." : "다시뽑기"}</button>
+                <button className="result-action-btn secondary" onClick={openLocationEditor}>
+                  {t("results.actionChangeLocation")}
+                </button>
+                <button className="result-action-btn secondary" onClick={openFilterEditor}>
+                  {t("results.actionChangeFilters")}
+                </button>
+                <button className="result-action-btn primary" onClick={reroll} disabled={loading}>
+                  {loading ? t("common.loading") : t("results.actionReroll")}
+                </button>
               </div>
             </div>
           </div>
@@ -840,59 +949,59 @@ export default function ResultsPage() {
                   <div className="title-row">
                     <h3>
                       {item.name}
-                      {compactMobileCards ? null : <small>{item.address || "주소 정보 없음"}</small>}
+                      {compactMobileCards ? null : <small>{item.address || t("results.cardNoAddress")}</small>}
                     </h3>
-                    <span className="chip-rank">#{idx + 1} MATCH</span>
+                    <span className="chip-rank">{t("results.cardMatch", { rank: idx + 1 })}</span>
                   </div>
 
                   {compactMobileCards ? (
                     <div className="result-tags compact-tags">
-                      <p className="meta">{item.raw_category || item.category || "기타"}</p>
-                      <p className="meta">{formatDistance(item.distance_m)}</p>
+                      <p className="meta">{item.raw_category || item.category || t("results.cardFallbackCategory")}</p>
+                      <p className="meta">{formatDistance(item.distance_m, locale)}</p>
                       <p className="meta">★{item.rating}</p>
                     </div>
                   ) : expandedFitCards ? (
                     <>
                       <p className="expanded-meta-line">
-                        {(item.raw_category || item.category || "기타") +
+                        {(item.raw_category || item.category || t("results.cardFallbackCategory")) +
                           " · " +
-                          formatDistance(item.distance_m) +
+                          formatDistance(item.distance_m, locale) +
                           " · ★" +
                           item.rating}
                       </p>
-                      <p className="reason">{item.why.map(localizeReason).join(" · ") || "추천 이유 계산 중"}</p>
+                      <p className="reason">{item.why.map((reason) => localizeReason(reason, t)).join(" · ") || t("results.cardReasonPending")}</p>
                       <div className="btn-row expanded-fit-btn-row">
                         {useKrLinks ? (
                           <>
                             {kakaoPlaceIdMapLink(item) ? (
-                              <a className="btn-link" href={kakaoPlaceIdMapLink(item) ?? "#"} target="_blank" rel="noreferrer">카카오지도</a>
+                              <a className="btn-link" href={kakaoPlaceIdMapLink(item) ?? "#"} target="_blank" rel="noreferrer">{t("results.linkKakao")}</a>
                             ) : null}
-                            <a className="btn-ghost" href={naverSearchLink(item)} target="_blank" rel="noreferrer">네이버지도</a>
+                            <a className="btn-ghost" href={naverSearchLink(item)} target="_blank" rel="noreferrer">{t("results.linkNaver")}</a>
                           </>
                         ) : (
-                          <a className="btn-link" href={googlePlaceLink(item)} target="_blank" rel="noreferrer">지도 보기</a>
+                          <a className="btn-link" href={googlePlaceLink(item)} target="_blank" rel="noreferrer">{t("results.linkMap")}</a>
                         )}
                       </div>
                     </>
                   ) : (
                     <>
                       <div className="result-tags">
-                        <p className="meta">{formatDistance(item.distance_m)}</p>
-                        <p className="meta">{"₩".repeat(item.price_level)}</p>
+                        <p className="meta">{formatDistance(item.distance_m, locale)}</p>
+                        <p className="meta">{"₩".repeat(item.price_level) || t("results.priceFallback")}</p>
                         <p className="meta">★{item.rating}</p>
                       </div>
-                      <p className="reason"><span className="category-chip">{item.raw_category || item.category || "기타"}</span></p>
-                      <p className="reason">{item.why.map(localizeReason).join(" · ") || "추천 이유 계산 중"}</p>
+                      <p className="reason"><span className="category-chip">{item.raw_category || item.category || t("results.cardFallbackCategory")}</span></p>
+                      <p className="reason">{item.why.map((reason) => localizeReason(reason, t)).join(" · ") || t("results.cardReasonPending")}</p>
                       <div className="btn-row">
                         {useKrLinks ? (
                           <>
                             {kakaoPlaceIdMapLink(item) ? (
-                              <a className="btn-link" href={kakaoPlaceIdMapLink(item) ?? "#"} target="_blank" rel="noreferrer">카카오 지도 보기</a>
+                              <a className="btn-link" href={kakaoPlaceIdMapLink(item) ?? "#"} target="_blank" rel="noreferrer">{t("results.linkKakaoLong")}</a>
                             ) : null}
-                            <a className="btn-ghost" href={naverSearchLink(item)} target="_blank" rel="noreferrer">네이버 지도 보기</a>
+                            <a className="btn-ghost" href={naverSearchLink(item)} target="_blank" rel="noreferrer">{t("results.linkNaverLong")}</a>
                           </>
                         ) : (
-                          <a className="btn-link" href={googlePlaceLink(item)} target="_blank" rel="noreferrer">구글 지도 보기</a>
+                          <a className="btn-link" href={googlePlaceLink(item)} target="_blank" rel="noreferrer">{t("results.linkGoogleLong")}</a>
                         )}
                       </div>
                     </>
@@ -906,29 +1015,29 @@ export default function ResultsPage() {
 
       {filterOpen ? (
         <div className="result-editor-backdrop" onClick={(e) => e.target === e.currentTarget && setFilterOpen(false)}>
-          <section className="result-editor-sheet" role="dialog" aria-modal="true" aria-label="검색 조건 변경">
+          <section className="result-editor-sheet" role="dialog" aria-modal="true" aria-label={t("results.editor.filterTitle")}>
             <header className="result-editor-head">
-              <h2>검색 조건 조정</h2>
-              <button type="button" className="btn-ghost" onClick={() => setFilterOpen(false)}>닫기</button>
+              <h2>{t("results.editor.filterTitle")}</h2>
+              <button type="button" className="btn-ghost" onClick={() => setFilterOpen(false)}>{t("common.close")}</button>
             </header>
 
             <div className="result-editor-body">
               <article className="result-editor-card">
-                <h3>언제 드시나요?</h3>
+                <h3>{t("results.editor.mealTitle")}</h3>
                 <div className="result-editor-meal-grid">
                   <button type="button" className={draftMode === "lunch" ? "active" : ""} onClick={() => setDraftMode("lunch")}>
-                    점심
+                    {t("mode.lunch")}
                   </button>
                   <button type="button" className={draftMode === "dinner" ? "active" : ""} onClick={() => setDraftMode("dinner")}>
-                    저녁
+                    {t("mode.dinner")}
                   </button>
                 </div>
               </article>
 
               <article className="result-editor-card">
                 <div className="result-editor-row">
-                  <h3>거리 범위</h3>
-                  <strong>{formatRadius(draftRadius)} 이내</strong>
+                  <h3>{t("results.editor.radiusTitle")}</h3>
+                  <strong>{t("results.editor.radiusWithin", { radius: formatRadius(draftRadius, locale) })}</strong>
                 </div>
                 <div className="pref-radius-wrap">
                   <div className="pref-radius-track">
@@ -940,7 +1049,7 @@ export default function ResultsPage() {
                       step={100}
                       value={draftRadius}
                       onChange={(e) => setDraftRadius(Number(e.target.value))}
-                      aria-label="검색 반경"
+                      aria-label={t("results.editor.radiusTitle")}
                     />
                   </div>
                   <div className="pref-radius-scale">
@@ -951,7 +1060,7 @@ export default function ResultsPage() {
                   <div className="pref-radius-presets">
                     {[500, 1000, 2000, 3000].map((value) => (
                       <button key={value} type="button" className={draftRadius === value ? "active" : ""} onClick={() => setDraftRadius(value)}>
-                        {formatRadius(value)}
+                        {formatRadius(value, locale)}
                       </button>
                     ))}
                   </div>
@@ -959,7 +1068,7 @@ export default function ResultsPage() {
               </article>
 
               <article className="result-editor-card">
-                <h3>오늘의 바이브</h3>
+                <h3>{t("results.editor.vibeTitle")}</h3>
                 <div className="result-editor-vibe-grid">
                   {VIBE_OPTIONS.map((option) => (
                     <button
@@ -968,8 +1077,8 @@ export default function ResultsPage() {
                       className={draftRandomness === option.value ? "active" : ""}
                       onClick={() => setDraftRandomness(option.value)}
                     >
-                      <strong>{option.title}</strong>
-                      <span>{option.desc}</span>
+                      <strong>{t(option.titleKey)}</strong>
+                      <span>{t(option.descKey)}</span>
                     </button>
                   ))}
                 </div>
@@ -977,8 +1086,8 @@ export default function ResultsPage() {
             </div>
 
             <footer className="result-editor-actions">
-              <button type="button" className="btn-ghost" onClick={() => setFilterOpen(false)}>취소</button>
-              <button type="button" className="btn-primary" onClick={applyFilterChanges}>적용 후 재검색</button>
+              <button type="button" className="btn-ghost" onClick={() => setFilterOpen(false)}>{t("common.cancel")}</button>
+              <button type="button" className="btn-primary" onClick={applyFilterChanges}>{t("results.editor.apply")}</button>
             </footer>
           </section>
         </div>
@@ -986,20 +1095,20 @@ export default function ResultsPage() {
 
       {locationOpen ? (
         <div className="result-editor-backdrop" onClick={(e) => e.target === e.currentTarget && setLocationOpen(false)}>
-          <section className="result-editor-sheet" role="dialog" aria-modal="true" aria-label="위치 변경">
+          <section className="result-editor-sheet" role="dialog" aria-modal="true" aria-label={t("results.editor.locationTitle")}>
             <header className="result-editor-head">
-              <h2>검색 위치 변경</h2>
-              <button type="button" className="btn-ghost" onClick={() => setLocationOpen(false)}>닫기</button>
+              <h2>{t("results.editor.locationTitle")}</h2>
+              <button type="button" className="btn-ghost" onClick={() => setLocationOpen(false)}>{t("common.close")}</button>
             </header>
 
             <div className="result-editor-body">
               <article className="result-editor-card">
-                <h3>주소 / 도시명 / 좌표(lat,lng)</h3>
+                <h3>{t("results.editor.searchTitle")}</h3>
                 <div className="result-editor-search">
                   <input
                     value={locationQuery}
                     onChange={(e) => setLocationQuery(e.target.value)}
-                    placeholder="예: 성수역 또는 37.544, 127.055"
+                    placeholder={t("results.editor.searchPlaceholder")}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -1008,16 +1117,16 @@ export default function ResultsPage() {
                     }}
                   />
                   <button type="button" className="btn-ghost" onClick={searchLocation} disabled={locationLoading || geolocationLoading}>
-                    {locationLoading ? "검색 중..." : "검색"}
+                    {locationLoading ? t("common.searching") : t("common.search")}
                   </button>
                   <button type="button" className="btn-ghost" onClick={useCurrentLocation} disabled={locationLoading || geolocationLoading}>
-                    {geolocationLoading ? "확인 중..." : "현재 위치"}
+                    {geolocationLoading ? t("common.checking") : t("common.currentLocation")}
                   </button>
                 </div>
               </article>
 
               <article className="result-editor-card">
-                <h3>지도에서 직접 위치 선택</h3>
+                <h3>{t("results.editor.mapPickTitle")}</h3>
                 {locationPreview ? (
                   <>
                     <LocationPicker
@@ -1026,26 +1135,26 @@ export default function ResultsPage() {
                         setLocationPreview({
                           lat: next.lat,
                           lng: next.lng,
-                          label: "지도에서 선택한 위치",
+                          label: t("results.location.pickedOnMap"),
                           countryCode: undefined,
                         })
                       }
                     />
                     <p className="result-editor-help">
-                      {locationPreview.label ?? "선택 위치"} · {locationPreview.lat.toFixed(5)}, {locationPreview.lng.toFixed(5)}
+                      {locationPreview.label ?? t("results.location.pickedOnMap")} · {locationPreview.lat.toFixed(5)}, {locationPreview.lng.toFixed(5)}
                     </p>
                   </>
                 ) : (
-                  <p className="result-editor-help">먼저 검색하거나 현재 위치 버튼을 눌러 기준 위치를 설정해 주세요.</p>
+                  <p className="result-editor-help">{t("results.editor.mapPickEmpty")}</p>
                 )}
               </article>
               {locationError ? <p className="error-text">{locationError}</p> : null}
             </div>
 
             <footer className="result-editor-actions">
-              <button type="button" className="btn-ghost" onClick={() => setLocationOpen(false)}>취소</button>
+              <button type="button" className="btn-ghost" onClick={() => setLocationOpen(false)}>{t("common.cancel")}</button>
               <button type="button" className="btn-primary" onClick={applyLocationChanges} disabled={!locationPreview}>
-                이 위치로 재검색
+                {t("results.editor.researchWithLocation")}
               </button>
             </footer>
           </section>

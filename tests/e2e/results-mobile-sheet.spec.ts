@@ -88,7 +88,7 @@ test('mobile results sheet follows swipe and snaps between states', async ({ pag
     });
   });
 
-  await page.goto('/results');
+  await page.goto('/ko/results');
 
   const panel = page.locator('.cards-panel.mobile-sheet');
   await expect(panel).toBeVisible();

@@ -4,6 +4,8 @@ import L from "leaflet";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import { useMemo } from "react";
 
+import { useT } from "@/lib/i18n/client";
+
 type Position = { lat: number; lng: number };
 
 type Props = {
@@ -37,6 +39,7 @@ function PickerEvents({ onPick }: { onPick: (pos: Position) => void }) {
 
 export default function LocationPicker({ value, onChange }: Props) {
   const icon = useMemo(() => markerIcon(), []);
+  const t = useT();
 
   return (
     <div className="manual-map-wrap">
@@ -59,7 +62,7 @@ export default function LocationPicker({ value, onChange }: Props) {
           }}
         />
       </MapContainer>
-      <p className="manual-map-label">지도를 클릭하거나 핀을 드래그해 위치를 선택하세요.</p>
+      <p className="manual-map-label">{t("locationPicker.hint")}</p>
     </div>
   );
 }

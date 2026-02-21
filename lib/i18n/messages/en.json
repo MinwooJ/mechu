@@ -1,0 +1,198 @@
+{
+  "common": {
+    "home": "Home",
+    "close": "Close",
+    "cancel": "Cancel",
+    "search": "Search",
+    "searching": "Searching...",
+    "currentLocation": "Current location",
+    "checking": "Checking...",
+    "loading": "Loading...",
+    "continue": "Continue with this location"
+  },
+  "flow": {
+    "brandHomeAria": "Go to home",
+    "langSwitcherAria": "Switch language"
+  },
+  "mode": {
+    "lunch": "Lunch",
+    "dinner": "Dinner",
+    "lunchTag": "Lunch Pick",
+    "dinnerTag": "Dinner Pick"
+  },
+  "onboarding": {
+    "chip": "DISCOVER LOCAL GEMS",
+    "titleTop": "Lunch Pick?",
+    "titleBottom": "Dinner Pick?",
+    "descriptionLine1": "We will find hidden local spots around you.",
+    "descriptionLine2": "Let me solve today's meal decision.",
+    "allowLocation": "Allow my location",
+    "checkingLocation": "Checking location...",
+    "manualOpen": "Enter location manually",
+    "manualClose": "Close manual input",
+    "manualLabel": "Address / City / Coordinates (lat,lng)",
+    "manualPlaceholder": "e.g. Gangnam Station or 37.498, 127.028",
+    "manualSearch": "Search location",
+    "manualSearching": "Searching...",
+    "manualMapSelected": "Location selected on map",
+    "manualRecent": "Recent location",
+    "manualDefault": "Default location",
+    "manualCoordResult": "Coordinate result",
+    "privacy": "Location data is used only for recommendations.",
+    "errorNoGeolocation": "This browser does not support geolocation.",
+    "errorPermission": "Allow location permission to get nearby recommendations.",
+    "errorManualTooShort": "Enter an address, city, or coordinates.",
+    "errorMissingApi": "Google Maps API key is missing, so manual text search is unavailable.",
+    "errorNotFound": "Location not found. Try a different query.",
+    "errorSearchFailed": "Location search failed. Please try again.",
+    "errorNoPreview": "Search for a location first."
+  },
+  "locationPicker": {
+    "hint": "Click the map or drag the pin to choose a location."
+  },
+  "preferences": {
+    "title": "When are you eating?",
+    "subtitle": "Pick the best spot that matches your mood today.",
+    "reset": "Reset",
+    "meal": {
+      "lunchBadge": "LIGHT & FRESH",
+      "lunchName": "Lunch",
+      "lunchDesc": "Quick and energizing fuel",
+      "dinnerBadge": "MOOD & CHILL",
+      "dinnerName": "Dinner",
+      "dinnerDesc": "A comforting finish to your day"
+    },
+    "radius": {
+      "title": "📍 Search radius",
+      "desc": "Radius from your selected location",
+      "within": "Within {radius}"
+    },
+    "vibe": {
+      "title": "🎲 Today's vibe",
+      "desc": "Choose your preferred style (randomized)",
+      "stableTitle": "Safe choice",
+      "stableA": "4.0+ rating",
+      "stableB": "Well-reviewed spots",
+      "balancedTitle": "Trending now",
+      "balancedA": "Popular on socials",
+      "balancedB": "Can include wait times",
+      "exploreTitle": "Explorer",
+      "exploreA": "Local hidden gems",
+      "exploreB": "Lesser-known picks"
+    },
+    "selectedLabel": "Selected filters",
+    "find": "Find food"
+  },
+  "results": {
+    "topPicks": "Top 3 Picks",
+    "actionChangeLocation": "Change location",
+    "actionChangeFilters": "Change filters",
+    "actionReroll": "Re-roll",
+    "mapLoading": "Loading results.",
+    "mapFocusOriginAria": "Move to search origin",
+    "mapHintKakao": "Shown with Kakao Map in Korea. M: search origin · Orange pins: recommendations",
+    "mapHintOsm": "M: search origin · 1-3: recommended spots. Drag and zoom to explore nearby.",
+    "mapLoadFailedFallback": "Failed to load Kakao Map. Falling back to OSM.",
+    "sheetGrabberAria": "Resize results panel",
+    "cardNoAddress": "No address",
+    "cardFallbackCategory": "Other",
+    "cardReasonPending": "Preparing recommendation reason",
+    "cardMatch": "#{rank} MATCH",
+    "linkKakao": "Kakao Map",
+    "linkNaver": "Naver Map",
+    "linkMap": "View map",
+    "linkKakaoLong": "Open in Kakao Map",
+    "linkNaverLong": "Open in Naver Map",
+    "linkGoogleLong": "Open in Google Maps",
+    "priceFallback": "No price info",
+    "editor": {
+      "filterTitle": "Adjust search filters",
+      "mealTitle": "When are you eating?",
+      "radiusTitle": "Search radius",
+      "radiusWithin": "Within {radius}",
+      "vibeTitle": "Today's vibe",
+      "apply": "Apply and search",
+      "locationTitle": "Change search location",
+      "searchTitle": "Address / City / Coordinates (lat,lng)",
+      "searchPlaceholder": "e.g. Seongsu Station or 37.544, 127.055",
+      "mapPickTitle": "Pick location on map",
+      "mapPickEmpty": "Search first or use current location to set a base point.",
+      "researchWithLocation": "Search from this location"
+    },
+    "location": {
+      "base": "Current search origin",
+      "coordResult": "Coordinate result",
+      "searchResult": "Search result",
+      "current": "Current location",
+      "pickedOnMap": "Location selected on map"
+    },
+    "error": {
+      "queryTooShort": "Enter an address, city, or coordinates.",
+      "missingApi": "Google Maps API key is missing, so text search is limited.",
+      "notFound": "Location not found. Try another keyword.",
+      "searchFailed": "Location search failed. Please try again.",
+      "geolocationUnsupported": "This browser does not support geolocation.",
+      "geolocationFailed": "Could not get current location. Check permissions.",
+      "locationPreviewRequired": "Pick a location on the map or from search first."
+    },
+    "loading": {
+      "msg1": "Finding great places...",
+      "msg2": "Exploring hidden gems nearby...",
+      "msg3": "Deciding your menu...",
+      "msg4": "Summoning today's picks...",
+      "msg5": "Warming up the food radar...",
+      "msg6": "Curating spots just for you...",
+      "msg7": "Solving your hunger mission...",
+      "msg8": "Analyzing local food data...",
+      "msg9": "Finding your next best meal...",
+      "msg10": "Locking onto your taste..."
+    },
+    "reason": {
+      "near": "Near your location",
+      "time": "Fits your selected time",
+      "openNow": "Open now",
+      "highRated": "Highly rated",
+      "popular": "Popular now",
+      "hiddenGem": "Hidden gem pick"
+    },
+    "vibe": {
+      "stable": "Safe choice",
+      "balanced": "Trending now",
+      "explore": "Explorer"
+    },
+    "vibeDesc": {
+      "stable": "Focused on proven favorites",
+      "balanced": "Balanced trend + random",
+      "explore": "Hidden local exploration"
+    }
+  },
+  "status": {
+    "chip": "STATUS",
+    "need_location": {
+      "title": "Location permission is required",
+      "body": "Allow location permission to get nearby recommendations.",
+      "primary": "Go to onboarding"
+    },
+    "unsupported": {
+      "title": "Service not available yet",
+      "body": "This region is not supported right now. Try changing your country and retry.",
+      "primary": "Update settings"
+    },
+    "empty": {
+      "title": "No restaurants found in this radius.",
+      "body": "No spots were found within your current filters. Increase radius or change location.",
+      "primary": "Adjust filters"
+    },
+    "error": {
+      "title": "Connection looks unstable",
+      "body": "Check your network and try again.",
+      "primary": "Try again"
+    },
+    "viewResultsAgain": "View results again",
+    "changeLocation": "Change location",
+    "helpTitle": "Help",
+    "help1": "Allowing location improves recommendation quality.",
+    "help2": "If 500m returns few places, try 1km or 3km.",
+    "help3": "Explorer mode surfaces more hidden local spots."
+  }
+}

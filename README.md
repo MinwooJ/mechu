@@ -44,6 +44,33 @@
 - 가중 랜덤 + 카테고리 다양성 페널티로 TopN 선택
 - 거리 점수는 랭킹에 직접 사용하지 않고 반경 필터로만 사용
 
+## 다국어(i18n)
+
+- 지원 언어: `ko`, `en`, `ja`, `zh-Hant`
+- URL 전략: locale prefix (`/ko/...`, `/en/...`, `/ja/...`, `/zh-Hant/...`)
+- 기본 언어: `en`
+- 감지 우선순위:
+  1. URL locale
+  2. `NEXT_LOCALE` 쿠키
+  3. 브라우저 `Accept-Language`
+  4. IP 국가(`CF-IPCountry` / `request.geo.country`)
+  5. `en` fallback
+- IP 국가 매핑:
+  - `KR -> ko`
+  - `JP -> ja`
+  - `TW/HK/MO -> zh-Hant`
+  - 그 외 `en`
+- 언어 스위처:
+  - 헤더에 단일 언어 버튼 노출
+  - 데스크톱: 팝오버 메뉴
+  - 모바일: 하단 오버레이 메뉴
+- 핵심 파일:
+  - `middleware.ts`
+  - `lib/i18n/config.ts`
+  - `lib/i18n/messages.ts`
+  - `lib/i18n/messages/ko.json`, `lib/i18n/messages/en.json`
+  - `lib/i18n/messages/ja.json`, `lib/i18n/messages/zh-Hant.json`
+
 ## 기술 스택
 
 - Next.js 15 (App Router)
@@ -58,6 +85,11 @@
 
 ```text
 app/
+  [locale]/
+    onboarding/
+    preferences/
+    results/
+    status/
   api/
     availability/
     recommendations/
@@ -71,6 +103,7 @@ app/
 lib/
   flow/
   reco/
+  i18n/
 migrations/
 docs/
 public/
@@ -200,4 +233,5 @@ npm run deploy
 - 추천 알고리즘: `docs/recommendation-algorithm.md`
 - 바이브 설계안(확장): `docs/vibe-recommendation-design.md`
 - 아키텍처/운영 가이드: `docs/architecture.md`
+- i18n 운영 가이드: `docs/i18n-guide.md`
 - AI 작업 가이드: `CLAUDE.md`
