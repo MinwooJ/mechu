@@ -12,20 +12,30 @@ type Props = {
   origin: Position;
   items: RecommendationItem[];
   selectedPlaceId: string | null;
+  mapFocusTarget: "selected" | "origin";
   focusNonce: number;
   onSelect: (placeId: string) => void;
 };
 
-function FitBounds({ origin, items }: { origin: Position; items: RecommendationItem[] }) {
+function FitBounds({
+  origin,
+  items,
+  mapFocusTarget,
+}: {
+  origin: Position;
+  items: RecommendationItem[];
+  mapFocusTarget: "selected" | "origin";
+}) {
   const map = useMap();
   const didFitRef = useRef(false);
 
   useEffect(() => {
+    if (mapFocusTarget === "origin") return;
     const points: L.LatLngExpression[] = [[origin.lat, origin.lng], ...items.map((i) => [i.lat, i.lng] as L.LatLngExpression)];
     const bounds = L.latLngBounds(points);
     map.fitBounds(bounds.pad(0.25), { animate: didFitRef.current });
     didFitRef.current = true;
-  }, [map, origin, items]);
+  }, [map, origin, items, mapFocusTarget]);
 
   return null;
 }
@@ -45,35 +55,47 @@ function EnsureInteractive({ stamp }: { stamp: string }) {
   return null;
 }
 
-function FocusSelected({
+function FocusTarget({
+  origin,
   items,
   selectedPlaceId,
+  mapFocusTarget,
   focusNonce,
 }: {
+  origin: Position;
   items: RecommendationItem[];
   selectedPlaceId: string | null;
+  mapFocusTarget: "selected" | "origin";
   focusNonce: number;
 }) {
   const map = useMap();
 
   useEffect(() => {
-    if (!selectedPlaceId) return;
-    const selected = items.find((item) => item.place_id === selectedPlaceId);
-    if (!selected) return;
+    const targetLatLng: [number, number] | null =
+      mapFocusTarget === "origin"
+        ? [origin.lat, origin.lng]
+        : (() => {
+            if (!selectedPlaceId) return null;
+            const selected = items.find((item) => item.place_id === selectedPlaceId);
+            if (!selected) return null;
+            return [selected.lat, selected.lng];
+          })();
+
+    if (!targetLatLng) return;
 
     const nextZoom = Math.max(map.getZoom(), 15);
     const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 980px)").matches;
     if (!isMobile) {
-      map.flyTo([selected.lat, selected.lng], nextZoom, { animate: true, duration: 0.35 });
+      map.flyTo(targetLatLng, nextZoom, { animate: true, duration: 0.35 });
       return;
     }
 
     // On mobile, keep the focused marker above the bottom sheet.
-    const markerPoint = map.latLngToContainerPoint([selected.lat, selected.lng]);
+    const markerPoint = map.latLngToContainerPoint(targetLatLng);
     const upwardOffset = Math.round(Math.min(window.innerHeight * 0.18, 170));
     const adjustedCenter = map.containerPointToLatLng(L.point(markerPoint.x, markerPoint.y + upwardOffset));
     map.flyTo(adjustedCenter, nextZoom, { animate: true, duration: 0.35 });
-  }, [map, items, selectedPlaceId, focusNonce]);
+  }, [map, origin, items, selectedPlaceId, mapFocusTarget, focusNonce]);
 
   return null;
 }
@@ -96,7 +118,7 @@ function itemIcon(rank: number, active: boolean): L.DivIcon {
   });
 }
 
-export default function InteractiveMap({ origin, items, selectedPlaceId, focusNonce, onSelect }: Props) {
+export default function InteractiveMap({ origin, items, selectedPlaceId, mapFocusTarget, focusNonce, onSelect }: Props) {
   const baseCenter = useMemo<L.LatLngExpression>(() => [origin.lat, origin.lng], [origin]);
 
   return (
@@ -106,9 +128,15 @@ export default function InteractiveMap({ origin, items, selectedPlaceId, focusNo
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
 
-      <FitBounds origin={origin} items={items} />
+      <FitBounds origin={origin} items={items} mapFocusTarget={mapFocusTarget} />
       <EnsureInteractive stamp={`${origin.lat},${origin.lng}:${items.length}`} />
-      <FocusSelected items={items} selectedPlaceId={selectedPlaceId} focusNonce={focusNonce} />
+      <FocusTarget
+        origin={origin}
+        items={items}
+        selectedPlaceId={selectedPlaceId}
+        mapFocusTarget={mapFocusTarget}
+        focusNonce={focusNonce}
+      />
 
       <Marker position={[origin.lat, origin.lng]} icon={originIcon()}>
         <Popup>검색 기준 위치</Popup>

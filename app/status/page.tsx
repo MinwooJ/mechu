@@ -54,6 +54,11 @@ export default async function StatusPage({
             <Link className="btn-ghost" href="/results">
               결과 다시 보기
             </Link>
+            {kind === "empty" ? (
+              <Link className="btn-ghost" href="/onboarding">
+                위치 변경
+              </Link>
+            ) : null}
           </div>
         </article>
 

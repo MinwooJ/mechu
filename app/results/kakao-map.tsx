@@ -10,6 +10,7 @@ type Props = {
   origin: Position;
   items: RecommendationItem[];
   selectedPlaceId: string | null;
+  mapFocusTarget: "selected" | "origin";
   focusNonce: number;
   onSelect: (placeId: string) => void;
   onLoadFail?: () => void;
@@ -46,7 +47,7 @@ function loadKakaoSdk(): Promise<void> {
   });
 }
 
-export default function KakaoMap({ origin, items, selectedPlaceId, focusNonce, onSelect, onLoadFail }: Props) {
+export default function KakaoMap({ origin, items, selectedPlaceId, mapFocusTarget, focusNonce, onSelect, onLoadFail }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -75,6 +76,7 @@ export default function KakaoMap({ origin, items, selectedPlaceId, focusNonce, o
         bounds.extend(center);
         const selectedItem = selectedPlaceId ? items.find((item) => item.place_id === selectedPlaceId) : null;
         const selectedLatLng = selectedItem ? new kakao.maps.LatLng(selectedItem.lat, selectedItem.lng) : null;
+        const focusLatLng = mapFocusTarget === "origin" ? center : selectedLatLng;
         const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 980px)").matches;
         const upwardOffset = isMobile ? Math.round(Math.min(window.innerHeight * 0.18, 170)) : 0;
 
@@ -147,16 +149,16 @@ export default function KakaoMap({ origin, items, selectedPlaceId, focusNonce, o
           });
         });
 
-        if (selectedLatLng) {
-          setFocusCenter(selectedLatLng);
+        if (focusLatLng) {
+          setFocusCenter(focusLatLng);
         } else {
           map.setBounds(bounds);
         }
         resizeTimer = setTimeout(() => {
           if (disposed) return;
           (window.kakao?.maps.event as unknown as { trigger?: (target: unknown, type: string) => void })?.trigger?.(map, "resize");
-          if (selectedLatLng) {
-            setFocusCenter(selectedLatLng);
+          if (focusLatLng) {
+            setFocusCenter(focusLatLng);
           } else {
             map.setBounds(bounds);
           }
@@ -176,7 +178,7 @@ export default function KakaoMap({ origin, items, selectedPlaceId, focusNonce, o
       cleanups.forEach((fn) => fn());
       cleanups = [];
     };
-  }, [origin, items, selectedPlaceId, focusNonce, onSelect, onLoadFail]);
+  }, [origin, items, selectedPlaceId, mapFocusTarget, focusNonce, onSelect, onLoadFail]);
 
   if (failed) {
     return <div className="map-empty">Kakao 지도 로드 실패. OSM 지도로 대체합니다.</div>;

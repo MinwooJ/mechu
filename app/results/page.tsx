@@ -17,6 +17,7 @@ import type {
 type Position = { lat: number; lng: number };
 type MapProvider = "osm" | "kakao";
 type SheetSnap = "collapsed" | "half";
+type MapFocusTarget = "selected" | "origin";
 type GeocodeResponse = {
   ok: boolean;
   lat?: number;
@@ -115,6 +116,7 @@ export default function ResultsPage() {
   const [items, setItems] = useState<RecommendationItem[]>([]);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [focusNonce, setFocusNonce] = useState(0);
+  const [mapFocusTarget, setMapFocusTarget] = useState<MapFocusTarget>("selected");
   const [loading, setLoading] = useState(true);
   const [origin, setOrigin] = useState<Position | null>(null);
   const [provider, setProvider] = useState<MapProvider>("osm");
@@ -208,6 +210,7 @@ export default function ResultsPage() {
       const top3 = data.recommendations.slice(0, 3);
       setItems(top3);
       setSelectedPlaceId(top3[0]?.place_id ?? null);
+      setMapFocusTarget("selected");
       setFocusNonce((prev) => prev + 1);
 
       void fetch("/api/events", {
@@ -236,6 +239,7 @@ export default function ResultsPage() {
 
   const reroll = () => {
     setSelectedPlaceId(null);
+    setMapFocusTarget("selected");
     setFocusNonce((prev) => prev + 1);
     loadResults();
   };
@@ -259,6 +263,7 @@ export default function ResultsPage() {
     });
     setFilterOpen(false);
     setSelectedPlaceId(null);
+    setMapFocusTarget("selected");
     setFocusNonce((prev) => prev + 1);
     loadResults();
   };
@@ -369,8 +374,20 @@ export default function ResultsPage() {
     });
     setLocationOpen(false);
     setSelectedPlaceId(null);
+    setMapFocusTarget("selected");
     setFocusNonce((prev) => prev + 1);
     loadResults();
+  };
+
+  const selectPlace = (placeId: string) => {
+    setSelectedPlaceId(placeId);
+    setMapFocusTarget("selected");
+    setFocusNonce((prev) => prev + 1);
+  };
+
+  const focusOrigin = () => {
+    setMapFocusTarget("origin");
+    setFocusNonce((prev) => prev + 1);
   };
 
   const snapIndex = (snap: SheetSnap) => {
@@ -459,8 +476,9 @@ export default function ResultsPage() {
                   origin={origin}
                   items={items}
                   selectedPlaceId={selected?.place_id ?? null}
+                  mapFocusTarget={mapFocusTarget}
                   focusNonce={focusNonce}
-                  onSelect={setSelectedPlaceId}
+                  onSelect={selectPlace}
                   onLoadFail={() => setProvider("osm")}
                 />
               ) : (
@@ -468,10 +486,14 @@ export default function ResultsPage() {
                   origin={origin}
                   items={items}
                   selectedPlaceId={selected?.place_id ?? null}
+                  mapFocusTarget={mapFocusTarget}
                   focusNonce={focusNonce}
-                  onSelect={setSelectedPlaceId}
+                  onSelect={selectPlace}
                 />
               )}
+              <button type="button" className="map-origin-btn" onClick={focusOrigin} aria-label="검색 기준 위치로 이동">
+                <span aria-hidden>◎</span>
+              </button>
               <p className="muted">
                 {provider === "kakao"
                   ? "한국에서는 Kakao Map으로 표시됩니다. M: 내 위치 · 주황 포인트: 추천 식당"
@@ -508,10 +530,7 @@ export default function ResultsPage() {
             <article
               key={item.place_id}
               className={`result-card ${selected?.place_id === item.place_id ? "active" : ""}`}
-              onClick={() => {
-                setSelectedPlaceId(item.place_id);
-                setFocusNonce((prev) => prev + 1);
-              }}
+              onClick={() => selectPlace(item.place_id)}
             >
               <div className="title-row">
                 <h3>
