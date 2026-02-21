@@ -110,14 +110,14 @@ npm run dev
 ```
 
 - 기본 주소: `http://localhost:3000`
-- `dev` 스크립트는 시작 시 `.next`를 삭제해 손상 캐시 이슈를 줄입니다.
+- `dev` 스크립트는 `.next-dev`를 사용합니다. (`build`의 `.next`와 분리)
 
 ### 자주 발생하는 로컬 오류
 
 `Cannot find module './xxx.js'`가 뜨면:
 
 ```bash
-rm -rf .next
+rm -rf .next-dev .next-e2e .next
 npm run dev
 ```
 

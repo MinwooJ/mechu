@@ -17,7 +17,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: `next dev -p ${E2E_PORT}`,
+    command: `npm run dev:e2e`,
     url: `${BASE_URL}/onboarding`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

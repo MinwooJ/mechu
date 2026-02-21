@@ -1,5 +1,7 @@
 node_modules/
 .next/
+.next-dev/
+.next-e2e/
 .open-next/
 .wrangler/
 .env.local
@@ -12,3 +14,10 @@ data/
 
 test-results/
 playwright-report/
+
+collapsed.png
+half.png
+expanded.png
+collapsed-state.png
+half-state.png
+expanded-state.png

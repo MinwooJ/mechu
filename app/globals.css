@@ -1768,6 +1768,7 @@ a {
     padding: 0;
     gap: 0;
     overflow: hidden;
+    overscroll-behavior: none;
     position: relative;
   }
 
@@ -2024,7 +2025,8 @@ a {
     right: 0;
     bottom: 0;
     z-index: 40;
-    height: calc(372px + env(safe-area-inset-bottom));
+    height: calc(100dvh - 48px);
+    max-height: none;
     padding: 8px 12px calc(14px + env(safe-area-inset-bottom));
     border-left: 0;
     border-right: 0;
@@ -2035,27 +2037,10 @@ a {
     touch-action: none;
     background: linear-gradient(180deg, rgba(42, 31, 24, 0.95) 0%, rgba(30, 22, 17, 0.97) 100%);
     box-shadow: 0 -16px 44px rgba(0, 0, 0, 0.42);
-    transition: height 220ms ease;
-  }
-
-  .results .cards-panel.sheet-collapsed {
-    height: calc(176px + env(safe-area-inset-bottom));
-  }
-
-  .results .cards-panel.sheet-half {
-    height: calc(372px + env(safe-area-inset-bottom));
-    overflow: hidden;
-  }
-
-  .results .cards-panel.sheet-expanded {
-    height: calc(100dvh - 48px);
-    overflow: hidden;
+    transition: transform 480ms cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: transform;
     display: flex;
     flex-direction: column;
-  }
-
-  .results .cards-panel.sheet-expanded .mobile-sheet-sticky {
-    flex-shrink: 0;
   }
 
   .results .cards-panel.dragging {
@@ -2075,12 +2060,14 @@ a {
   }
 
   .results .mobile-sheet-sticky {
+    display: block;
     position: sticky;
     top: -8px;
     z-index: 4;
     margin: 0 -12px 10px;
     padding: 2px 12px 8px;
     background: linear-gradient(180deg, rgba(41, 30, 23, 0.98) 0%, rgba(41, 30, 23, 0.88) 72%, rgba(41, 30, 23, 0) 100%);
+    flex-shrink: 0;
   }
 
   .results .sheet-grabber::before {
@@ -2148,12 +2135,12 @@ a {
 
   .results .mobile-cards-list.expanded-fit {
     display: grid;
-    grid-template-rows: repeat(3, auto);
+    grid-template-rows: repeat(3, minmax(0, 1fr));
     gap: 8px;
     flex: 1;
     min-height: 0;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    align-content: stretch;
+    overflow: hidden;
   }
 
   .results .result-card {
@@ -2205,12 +2192,13 @@ a {
 
   .results .result-card.expanded-fit {
     min-height: 0;
+    height: 100%;
     padding: 10px 10px 9px;
     border-radius: 12px;
     display: grid;
     gap: 5px;
     grid-template-rows: auto auto auto auto;
-    overflow: visible;
+    overflow: hidden;
   }
 
   .results .result-card.expanded-fit .title-row {
@@ -2232,10 +2220,15 @@ a {
     text-overflow: ellipsis;
   }
 
-  .results .result-card.expanded-fit .result-tags .meta {
-    min-height: 22px;
-    font-size: 0.7rem;
-    padding: 0 8px;
+  .results .result-card.expanded-fit .expanded-meta-line {
+    margin: 0;
+    font-size: 0.72rem;
+    line-height: 1.25;
+    color: #dbcfbe;
+    font-weight: 650;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .results .result-card.expanded-fit .reason {
@@ -2272,10 +2265,6 @@ a {
 
   .results .result-card.expanded-fit .title-row h3 {
     font-size: 0.86rem;
-  }
-
-  .results .result-card.expanded-fit .expanded-tags {
-    margin-top: 0;
   }
 
   .result-editor-backdrop {
