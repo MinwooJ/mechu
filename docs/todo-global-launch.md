@@ -1,80 +1,134 @@
 # MECHU Global Launch TODO
 
-글로벌 서비스 전환 시 놓치지 않기 위한 운영 체크리스트입니다.
+글로벌 서비스 전환 시 놓치지 않기 위한 체크리스트입니다.
+
+운영 원칙:
+
+- P0/P1 항목은 `global-growth-agent`가 오너, `design-agent`/`platform-agent`/`frontend-agent`가 공동 수행
+- 정책/검증 실패 항목은 Fast lane이 아닌 Standard 이상 레인으로 승격
+
+---
 
 ## P0 (출시 전 필수)
 
-### 1) 다국어(i18n)
+### 1) 다국어(i18n) [Owner: global-growth-agent + design-agent]
+
 - [ ] 지원 언어 1차 범위 확정 (`ko`, `en` 최소)
-- [ ] URL 전략 확정 (`/ko`, `/en` 경로 기반 권장)
-- [ ] 기본 언어/국가 결정 로직 정의 (브라우저 언어 + 사용자 선택값 우선)
+- [ ] URL 전략 확정 (`/ko`, `/en` 경로 기반)
+- [ ] 기본 언어/국가 결정 로직 정의 (브라우저 언어 + 사용자 선택 우선)
 - [ ] 언어 전환 UI(헤더/설정) 추가
-- [ ] UI 문자열 분리 (`messages/ko.json`, `messages/en.json` 등)
-- [ ] 서버/클라이언트 공통 번역 키 체계 정리
-- [ ] 추천 결과 관련 문구(상태, 버튼, 에러) 번역 완료
-- [ ] 국가별 지도 버튼 라벨 번역(한국: 카카오/네이버, 해외: 구글)
-- [ ] 날짜/숫자/거리 단위 로케일 포맷 적용 (`Intl` 사용)
+- [ ] UI 문자열 분리 (`messages/ko.json`, `messages/en.json`)
+- [ ] 번역 키 체계 정리 (서버/클라이언트 공통)
+- [ ] 상태/에러/버튼 문구 번역 완료
+- [ ] 거리/숫자/날짜 로케일 포맷 적용 (`Intl`)
 - [ ] `hreflang` + `canonical` 메타 적용
 
-### 2) SEO + Google Search Console
-- [ ] 프로덕션 도메인 확정 및 HTTPS 강제
+### 2) SEO + Search Console [Owner: global-growth-agent]
+
+- [ ] 프로덕션 도메인 확정 + HTTPS 강제
 - [ ] `sitemap.xml` 생성/배포 (언어별 URL 포함)
 - [ ] `robots.txt` 점검 (`/api` 비노출, 주요 페이지 허용)
-- [ ] Search Console 속성 등록 (Domain property 권장)
-- [ ] DNS TXT로 소유권 인증
+- [ ] Search Console 속성 등록 (Domain property 우선 검토)
+- [ ] DNS TXT 소유권 인증
 - [ ] 사이트맵 제출
-- [ ] 인덱싱 요청(핵심 페이지: onboarding/preferences/results/status)
-- [ ] 크롤링 오류/모바일 사용성/코어 웹 바이탈 모니터링 루틴 수립
+- [ ] 핵심 URL 인덱싱 점검 (onboarding/preferences/results/status)
+- [ ] 크롤링 오류/모바일 사용성/핵심 성능 지표 모니터링 루틴 수립
 
-### 3) Google Ads 도입 준비
+### 3) Prerender/렌더링 전략 [Owner: global-growth-agent + frontend-agent + design-agent]
+
+- [ ] 정적 생성 가능한 경로 목록 정의
+- [ ] locale 경로별 prerender 전략 수립
+- [ ] 메타데이터(og/canonical/alternates) 자동 생성 구조 점검
+- [ ] 페이지별 로딩/오류 상태가 인덱싱 품질을 해치지 않는지 점검
+
+### 4) Google Ads 도입 준비 [Owner: global-growth-agent]
+
 - [ ] Google Ads 계정/결제 설정
-- [ ] 전환 목표 정의 (예: 추천 조회 완료, 지도 이동 클릭)
+- [ ] 전환 목표 정의 (예: 추천 조회 완료, 지도 보기 클릭)
 - [ ] GA4와 Ads 연동
-- [ ] 전환 이벤트 파라미터 정의 (`session_id`, `search_country`, `mode`)
 - [ ] UTM 규칙 문서화 (`utm_source`, `utm_medium`, `utm_campaign`)
-- [ ] 랜딩 페이지 언어별 분기 준비
-- [ ] 브랜드 키워드/제외 키워드 초기 세팅
-- [ ] 예산 상한/입찰 전략(초기 보수적) 설정
+- [ ] 언어별 랜딩 페이지 준비
+- [ ] 정책 점검 (Destination/Editorial/Misrepresentation)
+- [ ] 국가별 동의 정책(EEA/UK 포함) 반영 계획 확정
+- [ ] 초기 예산/입찰 전략 수립
 
-### 4) 개인정보/동의
-- [ ] 개인정보처리방침에 국가/검색기록 수집 항목 반영
-- [ ] 쿠키/추적 동의 배너 필요 범위 확정 (특히 EEA/UK)
-- [ ] Ads/Analytics 동의 전 비필수 추적 차단 로직 점검
-- [ ] 로그 보관 기간 및 삭제 정책 명시
+### 5) 개인정보/동의 [Owner: platform-agent + global-growth-agent]
+
+- [ ] 개인정보처리방침에 수집 항목 반영 (`session_id`, `ip_country`, `search_country`, `mode`)
+- [ ] 쿠키/추적 동의 배너 범위 확정
+- [ ] 동의 전 비필수 추적 차단 로직 점검
+- [ ] 로그 보관 기간/삭제 정책 명시
+
+---
 
 ## P1 (출시 직후 1~2주)
 
-### 5) 성능/품질
-- [ ] 언어별 Lighthouse 점검 (성능/접근성/SEO)
-- [ ] 모바일 레이아웃 언어별 길이 오버플로우 테스트
-- [ ] 지도 스크립트 실패 시 대체 UI 문구 번역 점검
+### 6) 성능/품질 [Owner: qa-agent + global-growth-agent + design-agent]
 
-### 6) 지표 대시보드
+- [ ] 언어별 Lighthouse 점검
+- [ ] 모바일 레이아웃 언어별 오버플로우 테스트
+- [ ] 지도 스크립트 실패 시 대체 문구 번역 점검
+
+### 7) 지표 대시보드 [Owner: backend-agent + global-growth-agent]
+
 - [ ] 국가별 유입/전환 대시보드 구성
 - [ ] 검색 국가 vs IP 국가 분포 모니터링
-- [ ] 추천 결과 클릭률(지도 보기 버튼) 모니터링
-- [ ] 빈 결과율/오류율 임계치 알림 설정
+- [ ] 지도 보기 버튼 CTR 모니터링
+- [ ] 빈 결과율/오류율 알림 임계치 설정
 
-### 7) 광고 최적화
+### 8) 광고 최적화 [Owner: global-growth-agent]
+
 - [ ] 캠페인별 CPA/CTR 주간 리뷰
 - [ ] 검색어 리포트 기반 제외 키워드 업데이트
-- [ ] 국가/언어별 광고 카피 A/B 테스트
+- [ ] 국가/언어별 카피 A/B 테스트
 
-## 구현 메모(프로젝트 기준)
+---
+
+## 구현 메모
 
 - 배포: Cloudflare Edge (Next.js + OpenNext)
-- 지도/데이터 분기:
-  - 한국 검색: Kakao 우선, 실패 시 Google/기존 대체 로직
+- 데이터 분기:
+  - 한국 검색: Kakao 우선, 실패 시 Google 폴백
   - 해외 검색: Google 우선
-- 기록 권장 최소 필드:
+- 이벤트 최소 필드:
   - `session_id`
   - `ip_country`
   - `search_country`
   - `mode`
 
-## 완료 기준(Definition of Done)
+---
+
+## 완료 기준 (Definition of Done)
 
 - [ ] 다국어 최소 2개 언어로 핵심 플로우 100% 동작
-- [ ] Search Console에 사이트맵 제출 및 주요 URL 인덱싱 확인
-- [ ] Ads 전환 추적 데이터 실시간 수집 확인
+- [ ] Search Console 속성 검증 및 사이트맵 제출 완료
+- [ ] Ads 랜딩 품질 점검 통과 + 전환 수집 확인
 - [ ] 동의/개인정보 문서 및 UI 반영 완료
+
+---
+
+## 운영 참고 링크
+
+- Google Search Central: Localized versions (hreflang)  
+  https://developers.google.com/search/docs/specialty/international/localized-versions
+- Google Search Central: Multi-regional/multilingual  
+  https://developers.google.com/search/docs/advanced/crawling/managing-multi-regional-sites
+- Search Console Help: Add property  
+  https://support.google.com/webmasters/answer/34592
+- Search Console Help: Verify ownership  
+  https://support.google.com/webmasters/answer/9008080
+- Search Console Help: Manage sitemaps  
+  https://support.google.com/webmasters/answer/7451001
+- Next.js: Internationalization  
+  https://nextjs.org/docs/app/building-your-application/routing/internationalization
+- Next.js: generateStaticParams  
+  https://nextjs.org/docs/app/api-reference/functions/generate-static-params
+- Next.js: sitemap/robots metadata
+  https://nextjs.org/docs/app/api-reference/file-conventions/metadata/sitemap
+  https://nextjs.org/docs/app/api-reference/file-conventions/metadata/robots
+- Google Ads policies
+  https://support.google.com/adspolicy/answer/6008942
+  https://support.google.com/adspolicy/answer/16428019
+- Consent mode on websites
+  https://developers.google.com/tag-platform/security/guides/consent
+

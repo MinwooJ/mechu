@@ -1,0 +1,11 @@
+[Handoff]
+- agent:
+- ticket-id:
+- changed-files:
+  -
+- summary:
+- validations:
+  -
+- residual-risks:
+  -
+- next-owner:

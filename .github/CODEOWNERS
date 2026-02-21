@@ -1,0 +1,13 @@
+# Default owner
+* @MinwooJ
+
+# Domain ownership
+/app/results/* @MinwooJ
+/app/onboarding/* @MinwooJ
+/app/preferences/* @MinwooJ
+/app/api/* @MinwooJ
+/lib/reco/* @MinwooJ
+/wrangler.jsonc @MinwooJ
+/docs/* @MinwooJ
+/.agents/* @MinwooJ
+/.codex/* @MinwooJ

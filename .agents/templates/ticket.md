@@ -1,0 +1,21 @@
+[Ticket]
+- id:
+- lane: fast|standard|multi
+- owner-agent:
+- goal:
+- editable-paths:
+  -
+- non-goals:
+  -
+- assumptions:
+  -
+- clarification-questions:
+  -
+- approval-status: pending|approved
+- approval-note:
+- done-criteria:
+  -
+- verification:
+  - npx tsc --noEmit
+- risks:
+  -

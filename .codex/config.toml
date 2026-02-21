@@ -1,0 +1,41 @@
+#:schema https://developers.openai.com/codex/config-schema.json
+
+model = "gpt-5-codex"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[features]
+multi_agent = true
+shell_tool = true
+
+[agents.orchestrator]
+description = "Task decomposition, lane selection, integration and final validation"
+config_file = ".codex/agents/orchestrator.toml"
+
+[agents.frontend]
+description = "UI/UX and responsive implementation"
+config_file = ".codex/agents/frontend.toml"
+
+[agents.design]
+description = "Design system, visual quality, accessibility-first UI review"
+config_file = ".codex/agents/design.toml"
+
+[agents.map]
+description = "Map provider branching and touch/map interaction quality"
+config_file = ".codex/agents/map.toml"
+
+[agents.backend]
+description = "API contracts, recommendation engine, provider fallback logic"
+config_file = ".codex/agents/backend.toml"
+
+[agents.qa]
+description = "Playwright regression and release safety checks"
+config_file = ".codex/agents/qa.toml"
+
+[agents.platform]
+description = "Cloudflare deployment and runtime/build environment policy"
+config_file = ".codex/agents/platform.toml"
+
+[agents.global_growth]
+description = "i18n, SEO/GSC, prerender strategy, Google Ads policy readiness"
+config_file = ".codex/agents/global-growth.toml"
