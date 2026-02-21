@@ -9,3 +9,6 @@ output/
 data/
 *.tsbuildinfo
 .claude
+
+test-results/
+playwright-report/
