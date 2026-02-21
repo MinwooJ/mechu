@@ -1,0 +1,40 @@
+name: Agent Quality Gate
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Detect lane
+        id: lane
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git fetch origin "${{ github.base_ref }}" --depth=1
+            lane="$(.agents/scripts/detect-lane.sh "origin/${{ github.base_ref }}")"
+          else
+            lane="$(.agents/scripts/detect-lane.sh)"
+          fi
+          echo "lane=$lane" >> "$GITHUB_OUTPUT"
+          echo "Detected lane: $lane"
+
+      - name: Run quality gate
+        run: .agents/scripts/run-quality-gate.sh "${{ steps.lane.outputs.lane }}"

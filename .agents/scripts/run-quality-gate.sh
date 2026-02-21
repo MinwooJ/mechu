@@ -16,7 +16,12 @@ run_multi() {
   npx tsc --noEmit
   npm run build
   npm run cf:build
-  echo "Run Playwright smoke separately: npm run test:e2e (if configured)"
+
+  if npm run --silent 2>/dev/null | rg -q '^  test:e2e$|^test:e2e$'; then
+    npm run test:e2e
+  else
+    echo "No test:e2e script configured; skipping e2e execution."
+  fi
 }
 
 case "$lane" in

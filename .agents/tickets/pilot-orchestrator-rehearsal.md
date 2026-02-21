@@ -1,0 +1,27 @@
+[Ticket]
+- id: OPS-PILOT-001
+- lane: standard
+- owner-agent: orchestrator
+- goal: Rehearse orchestrator intake protocol before implementation work.
+- editable-paths:
+  - .agents/**
+  - AGENTS.md
+  - .github/**
+- non-goals:
+  - No product feature changes
+  - No API behavior changes
+- assumptions:
+  - Branch protection and required checks will be configured in GitHub by owner
+- clarification-questions:
+  - Should CODEOWNERS use personal handle only or team aliases in phase 2?
+- approval-status: approved
+- approval-note: User approved implementing steps 2-4 and verification in this branch.
+- done-criteria:
+  - CODEOWNERS added
+  - CI quality gate workflow added
+  - lane detect + quality-gate scripts validated locally
+- verification:
+  - .agents/scripts/detect-lane.sh
+  - .agents/scripts/run-quality-gate.sh standard
+- risks:
+  - CI runtime may increase on multi lane due to cf-build
