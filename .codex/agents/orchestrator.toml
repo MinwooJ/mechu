@@ -1,0 +1,3 @@
+# orchestrator profile
+model = "gpt-5-codex"
+sandbox_mode = "read-only"
