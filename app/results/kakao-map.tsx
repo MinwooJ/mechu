@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import type { Locale } from "@/lib/i18n/config";
+import { t as translate } from "@/lib/i18n/messages";
 import type { RecommendationItem } from "@/lib/reco/types";
 
 type Position = { lat: number; lng: number };
@@ -15,6 +17,7 @@ type Props = {
   mapFocusTarget: "selected" | "origin";
   focusNonce: number;
   sheetSnap?: SheetSnap;
+  locale: Locale;
   onSelect: (placeId: string) => void;
   onLoadFail?: () => void;
 };
@@ -56,7 +59,17 @@ function sheetHeightPx(snap?: SheetSnap): number {
   return 0;
 }
 
-export default function KakaoMap({ origin, items, selectedPlaceId, mapFocusTarget, focusNonce, sheetSnap, onSelect, onLoadFail }: Props) {
+export default function KakaoMap({
+  origin,
+  items,
+  selectedPlaceId,
+  mapFocusTarget,
+  focusNonce,
+  sheetSnap,
+  locale,
+  onSelect,
+  onLoadFail,
+}: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -102,7 +115,7 @@ export default function KakaoMap({ origin, items, selectedPlaceId, mapFocusTarge
         const originMarker = new kakao.maps.Marker({
           map,
           position: center,
-          title: "내 위치",
+          title: translate(locale, "results.location.current"),
           image: new kakao.maps.MarkerImage(pinSvg("#2d87ff"), new kakao.maps.Size(34, 34), {
             offset: new kakao.maps.Point(17, 17),
           }),
@@ -174,7 +187,7 @@ export default function KakaoMap({ origin, items, selectedPlaceId, mapFocusTarge
   }, [origin, items, selectedPlaceId, mapFocusTarget, focusNonce, sheetSnap, onSelect, onLoadFail]);
 
   if (failed) {
-    return <div className="map-empty">Kakao 지도 로드 실패. OSM 지도로 대체합니다.</div>;
+    return <div className="map-empty">{translate(locale, "results.mapLoadFailedFallback")}</div>;
   }
 
   return <div ref={containerRef} className="result-kakao-map" />;

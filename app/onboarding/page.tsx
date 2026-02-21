@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import FlowHeader from "@/app/components/flow-header";
 import { loadFlowState, saveFlowState } from "@/lib/flow/state";
+import { useLocaleHref, useT } from "@/lib/i18n/client";
 
 type GeocodeResponse = {
   ok: boolean;
@@ -50,6 +51,8 @@ function parseLatLng(raw: string): { lat: number; lng: number } | null {
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const t = useT();
+  const toLocale = useLocaleHref();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
@@ -60,11 +63,11 @@ export default function OnboardingPage() {
   useEffect(() => {
     const current = loadFlowState();
     if (current.position) {
-      setPreview({ lat: current.position.lat, lng: current.position.lng, label: "최근 사용 위치" });
+      setPreview({ lat: current.position.lat, lng: current.position.lng, label: t("onboarding.manualRecent") });
     } else {
-      setPreview({ lat: 37.5665, lng: 126.978, label: "기본 위치" });
+      setPreview({ lat: 37.5665, lng: 126.978, label: t("onboarding.manualDefault") });
     }
-  }, []);
+  }, [t]);
 
   const moveWithPosition = (lat: number, lng: number, countryCode?: string) => {
     const current = loadFlowState();
@@ -74,12 +77,12 @@ export default function OnboardingPage() {
       position: { lat, lng },
       countryCode: searchCountry,
     });
-    router.push("/preferences");
+    router.push(toLocale("/preferences"));
   };
 
   const allowLocation = () => {
     if (!navigator.geolocation) {
-      setError("브라우저에서 위치 기능을 지원하지 않아요.");
+      setError(t("onboarding.errorNoGeolocation"));
       return;
     }
 
@@ -92,7 +95,7 @@ export default function OnboardingPage() {
       },
       () => {
         setLoading(false);
-        setError("위치 권한을 허용하면 주변 추천을 받을 수 있어요.");
+        setError(t("onboarding.errorPermission"));
       },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 30000 },
     );
@@ -101,7 +104,7 @@ export default function OnboardingPage() {
   const searchManualLocation = async () => {
     const q = manualQuery.trim();
     if (q.length < 2) {
-      setError("주소, 도시명, 또는 좌표를 입력해 주세요.");
+      setError(t("onboarding.errorManualTooShort"));
       return;
     }
 
@@ -111,7 +114,7 @@ export default function OnboardingPage() {
       setPreview((prev) => ({
         lat: latLng.lat,
         lng: latLng.lng,
-        label: "좌표 검색 결과",
+        label: t("onboarding.manualCoordResult"),
         countryCode: inferSearchCountry(latLng.lat, latLng.lng),
       }));
       return;
@@ -126,9 +129,9 @@ export default function OnboardingPage() {
 
       if (!response.ok || !data.ok || typeof data.lat !== "number" || typeof data.lng !== "number") {
         if (data.reason === "missing_api_key") {
-          setError("Google Maps API 키가 없어 직접 위치 입력을 사용할 수 없어요.");
+          setError(t("onboarding.errorMissingApi"));
         } else {
-          setError("입력한 위치를 찾지 못했어요. 다른 키워드로 시도해 주세요.");
+          setError(t("onboarding.errorNotFound"));
         }
         return;
       }
@@ -140,7 +143,7 @@ export default function OnboardingPage() {
         countryCode: normalizeCountryCode(data.country_code),
       });
     } catch {
-      setError("위치 검색 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.");
+      setError(t("onboarding.errorSearchFailed"));
     } finally {
       setManualLoading(false);
     }
@@ -148,7 +151,7 @@ export default function OnboardingPage() {
 
   const applyManualLocation = () => {
     if (!preview) {
-      setError("먼저 위치를 검색해 주세요.");
+      setError(t("onboarding.errorNoPreview"));
       return;
     }
     setError(null);
@@ -163,15 +166,15 @@ export default function OnboardingPage() {
         <div className="onboard-gradient" />
 
         <div className="onboard-center">
-          <p className="chip"><span className="chip-dot" />DISCOVER LOCAL GEMS</p>
+          <p className="chip"><span className="chip-dot" />{t("onboarding.chip")}</p>
           <h1>
-            <span>점메추?</span>
-            <span>저메추?</span>
+            <span>{t("onboarding.titleTop")}</span>
+            <span>{t("onboarding.titleBottom")}</span>
           </h1>
           <p>
-            지금 당신 주변의 숨겨진 찐맛집을 찾아드릴게요.
+            {t("onboarding.descriptionLine1")}
             <br />
-            오늘의 메뉴 고민, 저희가 해결해 드립니다.
+            {t("onboarding.descriptionLine2")}
           </p>
 
           <section className="onboard-card">
@@ -179,20 +182,20 @@ export default function OnboardingPage() {
               <div className="onboard-icon-core">📍</div>
             </div>
             <button className="btn-primary" onClick={allowLocation} disabled={loading || manualLoading}>
-              {loading ? "위치 확인 중..." : "내 위치 허용하기"}
+              {loading ? t("onboarding.checkingLocation") : t("onboarding.allowLocation")}
             </button>
             <button className="btn-ghost" onClick={() => setManualOpen((prev) => !prev)} disabled={loading || manualLoading}>
-              {manualOpen ? "직접 입력 닫기" : "직접 위치 입력하기"}
+              {manualOpen ? t("onboarding.manualClose") : t("onboarding.manualOpen")}
             </button>
 
             {manualOpen ? (
               <div className="manual-form">
                 <label>
-                  주소 / 도시명 / 좌표(lat,lng)
+                  {t("onboarding.manualLabel")}
                   <input
                     value={manualQuery}
                     onChange={(e) => setManualQuery(e.target.value)}
-                    placeholder="예: Gangnam Station 또는 37.498, 127.028"
+                    placeholder={t("onboarding.manualPlaceholder")}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -204,10 +207,10 @@ export default function OnboardingPage() {
 
                 <div className="btn-row manual-actions">
                   <button className="btn-ghost" onClick={searchManualLocation} disabled={manualLoading || loading}>
-                    {manualLoading ? "검색 중..." : "위치 검색"}
+                    {manualLoading ? t("onboarding.manualSearching") : t("onboarding.manualSearch")}
                   </button>
                   <button className="btn-primary" onClick={applyManualLocation} disabled={manualLoading || loading || !preview}>
-                    이 위치로 계속
+                    {t("common.continue")}
                   </button>
                 </div>
 
@@ -219,7 +222,7 @@ export default function OnboardingPage() {
                         setPreview((prev) => ({
                           lat: next.lat,
                           lng: next.lng,
-                          label: "지도에서 선택한 위치",
+                          label: t("onboarding.manualMapSelected"),
                           countryCode: inferSearchCountry(next.lat, next.lng),
                         }))
                       }
@@ -232,7 +235,7 @@ export default function OnboardingPage() {
 
             {error ? <p className="error-text">{error}</p> : null}
           </section>
-          <p className="muted"><span aria-hidden>🔒</span> 위치 정보는 추천 목적에만 사용됩니다.</p>
+          <p className="muted"><span aria-hidden>🔒</span> {t("onboarding.privacy")}</p>
         </div>
       </section>
     </main>

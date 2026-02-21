@@ -1,0 +1,31 @@
+[Handoff]
+- agent: orchestrator
+- ticket-id: i18n-p0-multilang
+- changed-files:
+  - middleware.ts
+  - app/[locale]/**
+  - app/components/flow-header.tsx
+  - app/components/locale-html-lang-sync.tsx
+  - app/layout.tsx
+  - app/onboarding/page.tsx
+  - app/onboarding/location-picker.tsx
+  - app/preferences/page.tsx
+  - app/results/page.tsx
+  - app/results/interactive-map.tsx
+  - app/results/kakao-map.tsx
+  - app/status/page.tsx
+  - lib/i18n/**
+  - tests/e2e/smoke.spec.ts
+  - tests/e2e/results-mobile-sheet.spec.ts
+  - tests/e2e/i18n.spec.ts
+  - docs/i18n-guide.md
+  - README.md
+- summary: Implemented ko/en i18n with locale-prefix routes, middleware-based locale redirect, language switcher, translated target page copy, and localized map/card/status strings.
+- validations:
+  - npx tsc --noEmit (pass)
+  - npm run build (pass)
+  - npm run cf:build (pass)
+  - npm run test:e2e (11 pass, 1 skipped mobile-only counterpart)
+- residual-risks:
+  - Language switcher currently preserves query string; if new query-driven pages are added, verify switching behavior per page.
+- next-owner: qa

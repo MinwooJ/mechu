@@ -1,7 +1,10 @@
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import type { ReactNode } from "react";
+
+import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale } from "@/lib/i18n/config";
 
 export const metadata: Metadata = {
   title: "mechu",
@@ -16,9 +19,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const cookieStore = await cookies();
+  const fromCookie = cookieStore.get(LOCALE_COOKIE)?.value;
+  const lang = isLocale(fromCookie) ? fromCookie : DEFAULT_LOCALE;
+
   return (
-    <html lang="ko">
+    <html lang={lang}>
       <body>{children}</body>
     </html>
   );

@@ -18,7 +18,7 @@ export default defineConfig({
   },
   webServer: {
     command: `npm run dev:e2e`,
-    url: `${BASE_URL}/onboarding`,
+    url: `${BASE_URL}/en/onboarding`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

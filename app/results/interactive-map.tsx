@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 
+import type { Locale } from "@/lib/i18n/config";
+import { t as translate } from "@/lib/i18n/messages";
 import type { RecommendationItem } from "@/lib/reco/types";
 
 type Position = { lat: number; lng: number };
@@ -17,8 +19,18 @@ type Props = {
   mapFocusTarget: "selected" | "origin";
   focusNonce: number;
   sheetSnap?: SheetSnap;
+  locale: Locale;
   onSelect: (placeId: string) => void;
 };
+
+function formatDistance(distanceMeters: number, locale: Locale): string {
+  const nf = new Intl.NumberFormat(locale);
+  if (distanceMeters >= 1000) {
+    const value = (distanceMeters / 1000).toFixed(distanceMeters % 1000 === 0 ? 0 : 1);
+    return locale === "en" ? `${value} km` : `${value}km`;
+  }
+  return locale === "en" ? `${nf.format(distanceMeters)} m` : `${nf.format(distanceMeters)}m`;
+}
 
 function FitBounds({
   origin,
@@ -130,7 +142,16 @@ function itemIcon(rank: number, active: boolean): L.DivIcon {
   });
 }
 
-export default function InteractiveMap({ origin, items, selectedPlaceId, mapFocusTarget, focusNonce, sheetSnap, onSelect }: Props) {
+export default function InteractiveMap({
+  origin,
+  items,
+  selectedPlaceId,
+  mapFocusTarget,
+  focusNonce,
+  sheetSnap,
+  locale,
+  onSelect,
+}: Props) {
   const baseCenter = useMemo<L.LatLngExpression>(() => [origin.lat, origin.lng], [origin]);
 
   return (
@@ -152,7 +173,7 @@ export default function InteractiveMap({ origin, items, selectedPlaceId, mapFocu
       />
 
       <Marker position={[origin.lat, origin.lng]} icon={originIcon()}>
-        <Popup>검색 기준 위치</Popup>
+        <Popup>{translate(locale, "results.mapFocusOriginAria")}</Popup>
       </Marker>
 
       {items.map((item, idx) => (
@@ -167,7 +188,7 @@ export default function InteractiveMap({ origin, items, selectedPlaceId, mapFocu
           <Popup>
             <strong>{item.name}</strong>
             <br />
-            {item.distance_m}m · ★{item.rating}
+            {formatDistance(item.distance_m, locale)} · ★{item.rating}
           </Popup>
         </Marker>
       ))}

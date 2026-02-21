@@ -6,28 +6,52 @@ import { useRouter } from "next/navigation";
 import type { RandomnessLevel, RecommendMode } from "@/lib/reco/types";
 import FlowHeader from "@/app/components/flow-header";
 import { loadFlowState, saveFlowState } from "@/lib/flow/state";
+import { useLocale, useLocaleHref, useT } from "@/lib/i18n/client";
 
 const VIBE_OPTIONS: Array<{
   value: RandomnessLevel;
   emoji: string;
-  title: string;
-  descA: string;
-  descB: string;
+  titleKey: string;
+  descAKey: string;
+  descBKey: string;
 }> = [
-  { value: "stable", emoji: "🛡️", title: "안전빵", descA: "별점 4.0 이상", descB: "검증된 맛집" },
-  { value: "balanced", emoji: "🔥", title: "요즘 핫한", descA: "SNS 인기", descB: "웨이팅 있음" },
-  { value: "explore", emoji: "🎲", title: "모험가", descA: "숨은 로컬", descB: "나만 아는 곳" },
+  {
+    value: "stable",
+    emoji: "🛡️",
+    titleKey: "preferences.vibe.stableTitle",
+    descAKey: "preferences.vibe.stableA",
+    descBKey: "preferences.vibe.stableB",
+  },
+  {
+    value: "balanced",
+    emoji: "🔥",
+    titleKey: "preferences.vibe.balancedTitle",
+    descAKey: "preferences.vibe.balancedA",
+    descBKey: "preferences.vibe.balancedB",
+  },
+  {
+    value: "explore",
+    emoji: "🎲",
+    titleKey: "preferences.vibe.exploreTitle",
+    descAKey: "preferences.vibe.exploreA",
+    descBKey: "preferences.vibe.exploreB",
+  },
 ];
 
-function formatRadius(radius: number): string {
+function formatRadius(radius: number, locale: string): string {
+  const nf = new Intl.NumberFormat(locale);
   if (radius >= 1000) {
-    return `${(radius / 1000).toFixed(radius % 1000 === 0 ? 0 : 1)}km`;
+    const value = (radius / 1000).toFixed(radius % 1000 === 0 ? 0 : 1);
+    return locale === "en" ? `${value} km` : `${value}km`;
   }
-  return `${radius}m`;
+  return locale === "en" ? `${nf.format(radius)} m` : `${nf.format(radius)}m`;
 }
 
 export default function PreferencesPage() {
   const router = useRouter();
+  const locale = useLocale();
+  const t = useT();
+  const toLocale = useLocaleHref();
   const [mode, setMode] = useState<RecommendMode>("lunch");
   const [radius, setRadius] = useState(1000);
   const [randomness, setRandomness] = useState<RandomnessLevel>("balanced");
@@ -42,7 +66,7 @@ export default function PreferencesPage() {
   const startRecommendation = () => {
     const current = loadFlowState();
     saveFlowState({ ...current, mode, radius, randomness });
-    router.push("/results");
+    router.push(toLocale("/results"));
   };
 
   const resetPreferences = () => {
@@ -59,10 +83,12 @@ export default function PreferencesPage() {
       <FlowHeader />
       <section className="pref-intro section-shell">
         <div>
-          <h1>언제 드시나요?</h1>
-          <p>오늘의 기분과 상황에 맞는 최고의 맛집을 찾아드릴게요.</p>
+          <h1>{t("preferences.title")}</h1>
+          <p>{t("preferences.subtitle")}</p>
         </div>
-        <button type="button" className="btn-ghost pref-reset" onClick={resetPreferences}>초기화</button>
+        <button type="button" className="btn-ghost pref-reset" onClick={resetPreferences}>
+          {t("preferences.reset")}
+        </button>
       </section>
 
       <section className="pref-meal-grid section-shell">
@@ -71,12 +97,12 @@ export default function PreferencesPage() {
           onClick={() => setMode("lunch")}
           type="button"
         >
-          <img src="/lunch.webp" alt="점심 추천" className="pref-meal-image" />
+          <img src="/lunch.webp" alt={t("preferences.meal.lunchName")} className="pref-meal-image" />
           <span className="pref-meal-overlay" />
           <span className="pref-meal-content">
-            <small>LIGHT &amp; FRESH</small>
-            <strong>점심</strong>
-            <em>가볍고 활기찬 에너지 충전</em>
+            <small>{t("preferences.meal.lunchBadge")}</small>
+            <strong>{t("preferences.meal.lunchName")}</strong>
+            <em>{t("preferences.meal.lunchDesc")}</em>
           </span>
           <span className="pref-check">✓</span>
         </button>
@@ -86,12 +112,12 @@ export default function PreferencesPage() {
           onClick={() => setMode("dinner")}
           type="button"
         >
-          <img src="/dinner.webp" alt="저녁 추천" className="pref-meal-image" />
+          <img src="/dinner.webp" alt={t("preferences.meal.dinnerName")} className="pref-meal-image" />
           <span className="pref-meal-overlay" />
           <span className="pref-meal-content">
-            <small>MOOD &amp; CHILL</small>
-            <strong>저녁</strong>
-            <em>하루를 마무리하는 맛있는 위로</em>
+            <small>{t("preferences.meal.dinnerBadge")}</small>
+            <strong>{t("preferences.meal.dinnerName")}</strong>
+            <em>{t("preferences.meal.dinnerDesc")}</em>
           </span>
           <span className="pref-check">✓</span>
         </button>
@@ -101,10 +127,10 @@ export default function PreferencesPage() {
         <article className="pref-panel">
           <div className="pref-panel-head">
             <div>
-              <h2>📍 거리 범위</h2>
-              <p>현재 위치 기준 검색 반경</p>
+              <h2>{t("preferences.radius.title")}</h2>
+              <p>{t("preferences.radius.desc")}</p>
             </div>
-            <strong>{formatRadius(radius)} 이내</strong>
+            <strong>{t("preferences.radius.within", { radius: formatRadius(radius, locale) })}</strong>
           </div>
 
           <div className="pref-radius-wrap">
@@ -116,8 +142,8 @@ export default function PreferencesPage() {
                 max={3000}
                 step={100}
                 value={radius}
-                onChange={(e) => setRadius(Number(e.target.value))}
-                aria-label="검색 반경"
+                  onChange={(e) => setRadius(Number(e.target.value))}
+                aria-label={t("preferences.radius.title")}
               />
             </div>
             <div className="pref-radius-scale">
@@ -133,7 +159,7 @@ export default function PreferencesPage() {
                   className={radius === v ? "active" : ""}
                   onClick={() => setRadius(v)}
                 >
-                  {formatRadius(v)}
+                  {formatRadius(v, locale)}
                 </button>
               ))}
             </div>
@@ -143,8 +169,8 @@ export default function PreferencesPage() {
         <article className="pref-panel">
           <div className="pref-panel-head">
             <div>
-              <h2>🎲 오늘의 바이브</h2>
-              <p>원하는 맛집 스타일 선택 (랜덤 추천)</p>
+              <h2>{t("preferences.vibe.title")}</h2>
+              <p>{t("preferences.vibe.desc")}</p>
             </div>
           </div>
 
@@ -157,9 +183,9 @@ export default function PreferencesPage() {
                 onClick={() => setRandomness(option.value)}
               >
                 <span className="pref-vibe-emoji">{option.emoji}</span>
-                <strong>{option.title}</strong>
-                <em>{option.descA}</em>
-                <em>{option.descB}</em>
+                <strong>{t(option.titleKey)}</strong>
+                <em>{t(option.descAKey)}</em>
+                <em>{t(option.descBKey)}</em>
                 <i>●</i>
               </button>
             ))}
@@ -171,13 +197,17 @@ export default function PreferencesPage() {
       <footer className="pref-cta-bar">
         <div className="pref-cta-inner">
           <p className="pref-selected">
-            <span>선택된 필터</span>
-            <strong>{mode === "lunch" ? "점심" : "저녁"} · {formatRadius(radius)} · {selectedVibe.title}</strong>
+            <span>{t("preferences.selectedLabel")}</span>
+            <strong>
+              {mode === "lunch" ? t("mode.lunch") : t("mode.dinner")} · {formatRadius(radius, locale)} · {t(selectedVibe.titleKey)}
+            </strong>
           </p>
 
           <button className="pref-cta-btn" onClick={startRecommendation}>
-            <span>맛집 찾기</span>
-            <small>{mode === "lunch" ? "점심" : "저녁"} · {formatRadius(radius)} · {selectedVibe.title}</small>
+            <span>{t("preferences.find")}</span>
+            <small>
+              {mode === "lunch" ? t("mode.lunch") : t("mode.dinner")} · {formatRadius(radius, locale)} · {t(selectedVibe.titleKey)}
+            </small>
             <i>→</i>
           </button>
         </div>
