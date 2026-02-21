@@ -5,7 +5,8 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
 import FlowHeader from "@/app/components/flow-header";
-import { getSessionId, loadFlowState, saveFlowState } from "@/lib/flow/state";
+import { getSessionId, loadFlowState, saveFlowState, type FlowState } from "@/lib/flow/state";
+import { inferSearchCountry, normalizeCountryCode, parseLatLng } from "@/lib/geo/location";
 import { useLocale, useLocaleHref, useT } from "@/lib/i18n/client";
 import { formatDistance, formatRadius } from "@/lib/i18n/format";
 import type {
@@ -59,6 +60,88 @@ const LOADING_MESSAGE_KEYS = [
   "results.loading.msg10",
 ] as const;
 const UNKNOWN_REASON_LOGGED = new Set<string>();
+const RESULTS_CACHE_KEY = "meal_reco_results_cache_v1";
+const RESULTS_CACHE_TTL_MS = 10 * 60 * 1000;
+const RESULTS_CACHE_MAX_ENTRIES = 8;
+
+type ResultsCacheEntry = {
+  savedAt: number;
+  items: RecommendationItem[];
+  selectedPlaceId: string | null;
+};
+
+type ResultsCacheStore = Record<string, ResultsCacheEntry>;
+
+function buildResultsFlowKey(flow: FlowState): string | null {
+  if (!flow.position) return null;
+
+  const country = normalizeCountryCode(flow.countryCode) ?? "US";
+  return [
+    country,
+    flow.mode,
+    String(flow.radius),
+    flow.randomness,
+    flow.position.lat.toFixed(5),
+    flow.position.lng.toFixed(5),
+  ].join("|");
+}
+
+function readResultsCache(flowKey: string): ResultsCacheEntry | null {
+  if (typeof window === "undefined") return null;
+
+  const raw = window.sessionStorage.getItem(RESULTS_CACHE_KEY);
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as ResultsCacheStore;
+    const entry = parsed[flowKey];
+    if (!entry) return null;
+
+    if (Date.now() - entry.savedAt > RESULTS_CACHE_TTL_MS) {
+      delete parsed[flowKey];
+      window.sessionStorage.setItem(RESULTS_CACHE_KEY, JSON.stringify(parsed));
+      return null;
+    }
+
+    return entry;
+  } catch {
+    return null;
+  }
+}
+
+function writeResultsCache(flowKey: string, items: RecommendationItem[], selectedPlaceId: string | null): void {
+  if (typeof window === "undefined") return;
+
+  let store: ResultsCacheStore = {};
+  try {
+    const raw = window.sessionStorage.getItem(RESULTS_CACHE_KEY);
+    if (raw) {
+      store = JSON.parse(raw) as ResultsCacheStore;
+    }
+  } catch {
+    store = {};
+  }
+
+  const now = Date.now();
+  for (const [key, entry] of Object.entries(store)) {
+    if (!entry || now - entry.savedAt > RESULTS_CACHE_TTL_MS) {
+      delete store[key];
+    }
+  }
+
+  store[flowKey] = {
+    savedAt: now,
+    items: items.slice(0, 3),
+    selectedPlaceId,
+  };
+
+  const sortedKeys = Object.keys(store).sort((a, b) => (store[b]?.savedAt ?? 0) - (store[a]?.savedAt ?? 0));
+  for (const key of sortedKeys.slice(RESULTS_CACHE_MAX_ENTRIES)) {
+    delete store[key];
+  }
+
+  window.sessionStorage.setItem(RESULTS_CACHE_KEY, JSON.stringify(store));
+}
 
 function naverSearchLink(item: RecommendationItem): string {
   const queryText = [item.name, item.address].filter(Boolean).join(" ");
@@ -96,29 +179,6 @@ function localizeReason(reason: string, t: (key: string) => string): string {
   }
 
   return reason;
-}
-
-function inferSearchCountry(lat: number, lng: number): string {
-  const isKorea = lat >= 33 && lat <= 39.5 && lng >= 124 && lng <= 132;
-  return isKorea ? "KR" : "US";
-}
-
-function normalizeCountryCode(input?: string | null): string | undefined {
-  if (!input) return undefined;
-  const code = input.trim().toUpperCase();
-  return /^[A-Z]{2}$/.test(code) ? code : undefined;
-}
-
-function parseLatLng(raw: string): { lat: number; lng: number } | null {
-  const match = raw.match(/^\s*(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*$/);
-  if (!match) return null;
-
-  const lat = Number(match[1]);
-  const lng = Number(match[2]);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
-
-  return { lat, lng };
 }
 
 function rubberBand(offset: number, dimension: number): number {
@@ -170,6 +230,7 @@ export default function ResultsPage() {
   const [isMobileViewport, setIsMobileViewport] = useState<boolean>(() =>
     typeof window !== "undefined" ? window.matchMedia("(max-width: 980px)").matches : false,
   );
+  const itemsRef = useRef<RecommendationItem[]>([]);
   const dragStartYRef = useRef<number | null>(null);
   const dragMovedRef = useRef(false);
   const dragStartInStickyRef = useRef(false);
@@ -195,7 +256,24 @@ export default function ResultsPage() {
     return items.find((item) => item.place_id === selectedPlaceId) ?? items[0] ?? null;
   }, [items, selectedPlaceId]);
 
-  const loadResults = async () => {
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  const applyRecommendations = useCallback((recommendations: RecommendationItem[], preferredPlaceId?: string | null) => {
+    const top3 = recommendations.slice(0, 3);
+    const defaultSelected = top3[0]?.place_id ?? null;
+    const selectedId =
+      preferredPlaceId && top3.some((item) => item.place_id === preferredPlaceId) ? preferredPlaceId : defaultSelected;
+
+    setItems(top3);
+    setSelectedPlaceId(selectedId);
+    setMapFocusTarget("selected");
+    setFocusNonce((prev) => prev + 1);
+    return { top3, selectedId };
+  }, []);
+
+  const loadResults = async (options?: { forceRefresh?: boolean }) => {
     const flow = loadFlowState();
 
     if (!flow.position) {
@@ -210,6 +288,18 @@ export default function ResultsPage() {
     setFlowRandomness(flow.randomness);
     const useKakao = HAS_KAKAO_KEY && flow.countryCode === "KR";
     setProvider(useKakao ? "kakao" : "osm");
+
+    const flowKey = buildResultsFlowKey(flow);
+    const forceRefresh = options?.forceRefresh ?? false;
+    if (!forceRefresh && flowKey) {
+      const cached = readResultsCache(flowKey);
+      if (cached && cached.items.length > 0) {
+        applyRecommendations(cached.items, cached.selectedPlaceId);
+        setLoading(false);
+        return;
+      }
+    }
+
     setLoading(true);
     setLoadingMessage(loadingMessages[Math.floor(Math.random() * loadingMessages.length)] ?? t("common.loading"));
 
@@ -255,11 +345,10 @@ export default function ResultsPage() {
         return;
       }
 
-      const top3 = data.recommendations.slice(0, 3);
-      setItems(top3);
-      setSelectedPlaceId(top3[0]?.place_id ?? null);
-      setMapFocusTarget("selected");
-      setFocusNonce((prev) => prev + 1);
+      const applied = applyRecommendations(data.recommendations);
+      if (flowKey) {
+        writeResultsCache(flowKey, applied.top3, applied.selectedId);
+      }
 
       void fetch("/api/events", {
         method: "POST",
@@ -281,7 +370,7 @@ export default function ResultsPage() {
   };
 
   useEffect(() => {
-    loadResults();
+    void loadResults();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -427,7 +516,7 @@ export default function ResultsPage() {
     setSelectedPlaceId(null);
     setMapFocusTarget("selected");
     setFocusNonce((prev) => prev + 1);
-    loadResults();
+    void loadResults({ forceRefresh: true });
   };
 
   const openFilterEditor = () => {
@@ -451,7 +540,7 @@ export default function ResultsPage() {
     setSelectedPlaceId(null);
     setMapFocusTarget("selected");
     setFocusNonce((prev) => prev + 1);
-    loadResults();
+    void loadResults({ forceRefresh: true });
   };
 
   const openLocationEditor = () => {
@@ -577,7 +666,7 @@ export default function ResultsPage() {
     setSelectedPlaceId(null);
     setMapFocusTarget("selected");
     setFocusNonce((prev) => prev + 1);
-    loadResults();
+    void loadResults({ forceRefresh: true });
   };
 
   const beginSheetDrag = (
@@ -714,6 +803,11 @@ export default function ResultsPage() {
     setMapFocusTarget("selected");
     setFocusNonce((prev) => prev + 1);
     setSheetSnap((prev) => (prev === "expanded" ? "half" : prev));
+
+    const flowKey = buildResultsFlowKey(loadFlowState());
+    if (flowKey && itemsRef.current.length > 0) {
+      writeResultsCache(flowKey, itemsRef.current, placeId);
+    }
   }, []);
 
   const handleKakaoLoadFail = useCallback(() => setProvider("osm"), []);

@@ -1,15 +1,15 @@
-import { DEFAULT_LOCALE, isLocale, type Locale } from "@/lib/i18n/config";
+import { DEFAULT_LOCALE, parseLocale, type Locale } from "@/lib/i18n/config";
 
 export function localeFromPathname(pathname: string | null | undefined): Locale {
   if (!pathname) return DEFAULT_LOCALE;
   const firstSegment = pathname.split("/").filter(Boolean)[0];
-  return isLocale(firstSegment) ? firstSegment : DEFAULT_LOCALE;
+  return parseLocale(firstSegment) ?? DEFAULT_LOCALE;
 }
 
 export function stripLocalePrefix(pathname: string): string {
   const chunks = pathname.split("/").filter(Boolean);
   if (chunks.length === 0) return "/";
-  if (isLocale(chunks[0])) {
+  if (parseLocale(chunks[0])) {
     const rest = chunks.slice(1).join("/");
     return rest ? `/${rest}` : "/";
   }

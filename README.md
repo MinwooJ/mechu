@@ -46,15 +46,30 @@
 
 ## 다국어(i18n)
 
-- 지원 언어: `ko`, `en`
-- URL 전략: locale prefix (`/ko/...`, `/en/...`)
+- 지원 언어: `ko`, `en`, `ja`, `zh-Hant`
+- URL 전략: locale prefix (`/ko/...`, `/en/...`, `/ja/...`, `/zh-Hant/...`)
 - 기본 언어: `en`
-- 감지 순서: `NEXT_LOCALE` 쿠키 -> 브라우저 `Accept-Language` -> `en`
+- 감지 우선순위:
+  1. URL locale
+  2. `NEXT_LOCALE` 쿠키
+  3. 브라우저 `Accept-Language`
+  4. IP 국가(`CF-IPCountry` / `request.geo.country`)
+  5. `en` fallback
+- IP 국가 매핑:
+  - `KR -> ko`
+  - `JP -> ja`
+  - `TW/HK/MO -> zh-Hant`
+  - 그 외 `en`
+- 언어 스위처:
+  - 헤더에 단일 언어 버튼 노출
+  - 데스크톱: 팝오버 메뉴
+  - 모바일: 하단 오버레이 메뉴
 - 핵심 파일:
   - `middleware.ts`
   - `lib/i18n/config.ts`
   - `lib/i18n/messages.ts`
   - `lib/i18n/messages/ko.json`, `lib/i18n/messages/en.json`
+  - `lib/i18n/messages/ja.json`, `lib/i18n/messages/zh-Hant.json`
 
 ## 기술 스택
 

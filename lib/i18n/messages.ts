@@ -1,5 +1,7 @@
 import en from "@/lib/i18n/messages/en.json";
+import ja from "@/lib/i18n/messages/ja.json";
 import ko from "@/lib/i18n/messages/ko.json";
+import zhHant from "@/lib/i18n/messages/zh-Hant.json";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
 
 type MessagePrimitive = string;
@@ -9,7 +11,9 @@ export type MessageTree = {
 
 const MESSAGES: Record<Locale, MessageTree> = {
   en,
+  ja,
   ko,
+  "zh-Hant": zhHant,
 };
 
 function lookup(messages: MessageTree, key: string): string | null {

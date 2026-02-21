@@ -71,6 +71,20 @@ const UNSUPPORTED = new Set(
     .filter(Boolean),
 );
 
+function sanitizeCountryCode(input?: string | null): string | null {
+  if (!input) return null;
+  const code = input.trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(code) ? code : null;
+}
+
+function googleLanguageForCountry(countryCode?: string | null): string {
+  const code = sanitizeCountryCode(countryCode);
+  if (code === "KR") return "ko";
+  if (code === "JP") return "ja";
+  if (code === "TW" || code === "HK" || code === "MO") return "zh-TW";
+  return "en";
+}
+
 function isSupportedCountry(countryCode?: string | null): boolean {
   if (!countryCode) {
     return true;
@@ -299,8 +313,10 @@ async function fetchGoogleCandidates(req: Required<RecommendationRequest>): Prom
   for (let page = 1; page <= GOOGLE_NEARBY_MAX_PAGES; page += 1) {
     const params = new URLSearchParams({
       key: GOOGLE_MAPS_API_KEY,
-      language: "ko",
+      language: googleLanguageForCountry(req.country_code),
     });
+    const region = sanitizeCountryCode(req.country_code)?.toLowerCase();
+    if (region) params.set("region", region);
 
     if (page === 1) {
       params.set("location", `${req.lat},${req.lng}`);
@@ -521,6 +537,7 @@ function weightedPick<T>(items: T[], weights: number[], rnd: () => number): T {
 }
 
 function sanitizeRequest(input: RecommendationRequest): Required<RecommendationRequest> {
+  const countryCode = sanitizeCountryCode(input.country_code);
   return {
     lat: input.lat,
     lng: input.lng,
@@ -533,7 +550,7 @@ function sanitizeRequest(input: RecommendationRequest): Required<RecommendationR
     randomness_level: input.randomness_level ?? "balanced",
     exclude_place_ids: input.exclude_place_ids ?? [],
     recently_shown_place_ids: input.recently_shown_place_ids ?? [],
-    country_code: input.country_code ?? null,
+    country_code: countryCode,
     session_id: input.session_id ?? null,
   };
 }

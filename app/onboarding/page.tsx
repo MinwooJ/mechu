@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import FlowHeader from "@/app/components/flow-header";
 import { loadFlowState, saveFlowState } from "@/lib/flow/state";
+import { inferSearchCountry, normalizeCountryCode, parseLatLng } from "@/lib/geo/location";
 import { useLocaleHref, useT } from "@/lib/i18n/client";
 
 type GeocodeResponse = {
@@ -25,29 +26,6 @@ type PreviewPoint = {
 };
 
 const LocationPicker = dynamic(() => import("./location-picker"), { ssr: false });
-
-function inferSearchCountry(lat: number, lng: number): string {
-  const isKorea = lat >= 33 && lat <= 39.5 && lng >= 124 && lng <= 132;
-  return isKorea ? "KR" : "US";
-}
-
-function normalizeCountryCode(input?: string | null): string | undefined {
-  if (!input) return undefined;
-  const code = input.trim().toUpperCase();
-  return /^[A-Z]{2}$/.test(code) ? code : undefined;
-}
-
-function parseLatLng(raw: string): { lat: number; lng: number } | null {
-  const match = raw.match(/^\s*(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*$/);
-  if (!match) return null;
-
-  const lat = Number(match[1]);
-  const lng = Number(match[2]);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
-
-  return { lat, lng };
-}
 
 export default function OnboardingPage() {
   const router = useRouter();

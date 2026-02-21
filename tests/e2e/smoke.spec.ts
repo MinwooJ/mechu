@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test';
 
 test('root redirects to onboarding and shows primary CTA', async ({ page }) => {
   await page.goto('/');
-  await expect(page).toHaveURL(/\/(ko|en)\/onboarding$/);
-  await expect(page.getByRole('button', { name: /내 위치 허용하기|Allow my location/i })).toBeVisible();
+  await expect(page).toHaveURL(/\/(ko|en|ja|zh-Hant)\/onboarding$/);
+  await expect(page.getByRole('button', { name: /내 위치 허용하기|Allow my location|現在地を許可|允許目前位置/i })).toBeVisible();
 });
 
 test('status error page shows recovery actions', async ({ page }) => {

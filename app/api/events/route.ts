@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
+import { normalizeCountryCode } from "@/lib/geo/location";
 import { recordEvent } from "@/lib/reco/service";
 import type { RecommendationEvent } from "@/lib/reco/types";
 
@@ -15,11 +16,11 @@ type D1Database = {
 const EVENT_TYPES = new Set(["impression", "click", "directions", "exclude", "reshuffle"]);
 const MODES = new Set(["lunch", "dinner"]);
 
-function normalizeCountryCode(input: string | undefined | null): string | undefined {
-  if (!input) return undefined;
-  const code = input.trim().toUpperCase();
-  if (!/^[A-Z]{2}$/.test(code)) return undefined;
-  return code;
+function detectIpCountry(request: Request): string | undefined {
+  return (
+    normalizeCountryCode(request.headers.get("cf-ipcountry")) ??
+    normalizeCountryCode(request.headers.get("x-vercel-ip-country"))
+  );
 }
 
 async function insertEventToD1(db: D1Database, event: RecommendationEvent) {
@@ -63,10 +64,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid session_id" }, { status: 400 });
   }
 
-  const ipCountry = normalizeCountryCode(request.headers.get("cf-ipcountry"));
+  const ipCountry = detectIpCountry(request);
   const event: RecommendationEvent = {
     ...body,
-    ip_country: normalizeCountryCode(body.ip_country) ?? ipCountry,
+    // Never trust client-provided ip_country.
+    ip_country: ipCountry,
     search_country: normalizeCountryCode(body.search_country),
   };
 

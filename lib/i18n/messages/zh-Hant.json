@@ -1,0 +1,198 @@
+{
+  "common": {
+    "home": "首頁",
+    "close": "關閉",
+    "cancel": "取消",
+    "search": "搜尋",
+    "searching": "搜尋中...",
+    "currentLocation": "目前位置",
+    "checking": "確認中...",
+    "loading": "載入中...",
+    "continue": "以此位置繼續"
+  },
+  "flow": {
+    "brandHomeAria": "前往首頁",
+    "langSwitcherAria": "切換語言"
+  },
+  "mode": {
+    "lunch": "午餐",
+    "dinner": "晚餐",
+    "lunchTag": "午餐推薦",
+    "dinnerTag": "晚餐推薦"
+  },
+  "onboarding": {
+    "chip": "DISCOVER LOCAL GEMS",
+    "titleTop": "午餐吃什麼？",
+    "titleBottom": "晚餐吃什麼？",
+    "descriptionLine1": "幫你找到附近隱藏的在地好店。",
+    "descriptionLine2": "今天吃什麼，交給 mechu 幫你決定。",
+    "allowLocation": "允許目前位置",
+    "checkingLocation": "正在確認位置...",
+    "manualOpen": "手動輸入位置",
+    "manualClose": "關閉手動輸入",
+    "manualLabel": "地址 / 城市 / 座標(lat,lng)",
+    "manualPlaceholder": "例如：Taipei 101 或 25.033, 121.565",
+    "manualSearch": "搜尋位置",
+    "manualSearching": "搜尋中...",
+    "manualMapSelected": "地圖選取位置",
+    "manualRecent": "最近使用位置",
+    "manualDefault": "預設位置",
+    "manualCoordResult": "座標搜尋結果",
+    "privacy": "位置資訊僅用於推薦用途。",
+    "errorNoGeolocation": "此瀏覽器不支援定位功能。",
+    "errorPermission": "允許定位後即可取得附近推薦。",
+    "errorManualTooShort": "請輸入地址、城市或座標。",
+    "errorMissingApi": "缺少 Google Maps API 金鑰，無法使用文字搜尋。",
+    "errorNotFound": "找不到該位置，請換個關鍵字試試。",
+    "errorSearchFailed": "搜尋位置時發生錯誤，請稍後再試。",
+    "errorNoPreview": "請先搜尋位置。"
+  },
+  "locationPicker": {
+    "hint": "點擊地圖或拖曳圖釘以選擇位置。"
+  },
+  "preferences": {
+    "title": "什麼時候吃？",
+    "subtitle": "依照今天的心情，幫你挑出最適合的餐廳。",
+    "reset": "重設",
+    "meal": {
+      "lunchBadge": "LIGHT & FRESH",
+      "lunchName": "午餐",
+      "lunchDesc": "輕盈有活力的一餐",
+      "dinnerBadge": "MOOD & CHILL",
+      "dinnerName": "晚餐",
+      "dinnerDesc": "為一天畫下溫暖句點"
+    },
+    "radius": {
+      "title": "📍 搜尋範圍",
+      "desc": "以選定位置為中心的搜尋半徑",
+      "within": "{radius} 內"
+    },
+    "vibe": {
+      "title": "🎲 今日風格",
+      "desc": "選擇想要的餐廳風格（含隨機）",
+      "stableTitle": "穩健派",
+      "stableA": "評分 4.0 以上",
+      "stableB": "口碑可靠",
+      "balancedTitle": "熱門款",
+      "balancedA": "社群話題",
+      "balancedB": "可能需等候",
+      "exploreTitle": "冒險家",
+      "exploreA": "在地隱藏店",
+      "exploreB": "挖掘新口袋名單"
+    },
+    "selectedLabel": "已選條件",
+    "find": "找餐廳"
+  },
+  "results": {
+    "topPicks": "Top 3 Picks",
+    "actionChangeLocation": "更換位置",
+    "actionChangeFilters": "調整條件",
+    "actionReroll": "重新抽",
+    "mapLoading": "正在載入結果。",
+    "mapFocusOriginAria": "移動到搜尋基準位置",
+    "mapHintKakao": "韓國地區使用 Kakao 地圖。M：基準位置 · 橘色點：推薦店家",
+    "mapHintOsm": "M：基準位置 · 1~3：推薦店家。可拖曳/縮放地圖探索周邊。",
+    "mapLoadFailedFallback": "Kakao 地圖載入失敗，改用 OSM 地圖。",
+    "sheetGrabberAria": "調整結果面板大小",
+    "cardNoAddress": "無地址資訊",
+    "cardFallbackCategory": "其他",
+    "cardReasonPending": "正在整理推薦理由",
+    "cardMatch": "#{rank} MATCH",
+    "linkKakao": "Kakao 地圖",
+    "linkNaver": "Naver 地圖",
+    "linkMap": "查看地圖",
+    "linkKakaoLong": "在 Kakao 地圖開啟",
+    "linkNaverLong": "在 Naver 地圖開啟",
+    "linkGoogleLong": "在 Google 地圖開啟",
+    "priceFallback": "無價格資訊",
+    "editor": {
+      "filterTitle": "調整搜尋條件",
+      "mealTitle": "什麼時候吃？",
+      "radiusTitle": "搜尋範圍",
+      "radiusWithin": "{radius} 內",
+      "vibeTitle": "今日風格",
+      "apply": "套用並重新搜尋",
+      "locationTitle": "變更搜尋位置",
+      "searchTitle": "地址 / 城市 / 座標(lat,lng)",
+      "searchPlaceholder": "例如：Taipei Main Station 或 25.047, 121.517",
+      "mapPickTitle": "在地圖上選擇位置",
+      "mapPickEmpty": "請先搜尋或點擊目前位置設定基準點。",
+      "researchWithLocation": "用此位置重新搜尋"
+    },
+    "location": {
+      "base": "目前搜尋基準位置",
+      "coordResult": "座標搜尋結果",
+      "searchResult": "搜尋結果位置",
+      "current": "目前位置",
+      "pickedOnMap": "地圖選取位置"
+    },
+    "error": {
+      "queryTooShort": "請輸入地址、城市或座標。",
+      "missingApi": "缺少 Google Maps API 金鑰，文字搜尋功能受限。",
+      "notFound": "找不到該位置，請改用其他關鍵字。",
+      "searchFailed": "搜尋位置時發生錯誤，請稍後再試。",
+      "geolocationUnsupported": "此瀏覽器不支援定位功能。",
+      "geolocationFailed": "無法取得目前位置，請確認權限。",
+      "locationPreviewRequired": "請先在地圖上選擇位置或使用搜尋結果。"
+    },
+    "loading": {
+      "msg1": "正在找美食中...",
+      "msg2": "正在探索附近隱藏好店...",
+      "msg3": "正在幫你挑今天吃什麼...",
+      "msg4": "正在準備今日推薦...",
+      "msg5": "美食雷達啟動中...",
+      "msg6": "正在為你精選店家...",
+      "msg7": "正在解決你的飢餓任務...",
+      "msg8": "正在分析餐廳資料...",
+      "msg9": "正在尋找下一餐最佳選擇...",
+      "msg10": "正在鎖定你的口味..."
+    },
+    "reason": {
+      "near": "離你很近",
+      "time": "符合你選擇的時段",
+      "openNow": "營業中",
+      "highRated": "高評價",
+      "popular": "目前熱門",
+      "hiddenGem": "隱藏版推薦"
+    },
+    "vibe": {
+      "stable": "穩健派",
+      "balanced": "熱門款",
+      "explore": "冒險家"
+    },
+    "vibeDesc": {
+      "stable": "以口碑穩定店家為主",
+      "balanced": "熱門與隨機平衡",
+      "explore": "探索在地隱藏名店"
+    }
+  },
+  "status": {
+    "chip": "STATUS",
+    "need_location": {
+      "title": "需要定位權限",
+      "body": "允許定位後即可取得附近推薦。",
+      "primary": "前往導覽頁"
+    },
+    "unsupported": {
+      "title": "此地區尚未支援",
+      "body": "目前尚未支援此地區，請調整設定後再試。",
+      "primary": "重新設定"
+    },
+    "empty": {
+      "title": "此範圍內沒有找到餐廳。",
+      "body": "目前條件下找不到店家，請擴大範圍或更換位置。",
+      "primary": "調整條件"
+    },
+    "error": {
+      "title": "連線不穩定",
+      "body": "請確認網路連線後再試一次。",
+      "primary": "再試一次"
+    },
+    "viewResultsAgain": "重新查看結果",
+    "changeLocation": "更換位置",
+    "helpTitle": "說明",
+    "help1": "允許定位可提升推薦品質。",
+    "help2": "500m 結果太少時，建議改用 1km 或 3km。",
+    "help3": "探索模式會顯示更多在地隱藏店家。"
+  }
+}
