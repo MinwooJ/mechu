@@ -44,6 +44,19 @@ const VIBE_OPTIONS: Array<{ value: RandomnessLevel; title: string; desc: string 
   { value: "explore", title: "모험가", desc: "숨은 로컬 탐색" },
 ];
 
+const LOADING_MESSAGES: string[] = [
+  "맛집 찾는 중...",
+  "근처 숨은 맛집 탐색 중...",
+  "메뉴 고르는 중...",
+  "오늘의 맛집 소환 중...",
+  "미식 레이더 가동 중...",
+  "당신만을 위한 맛집 선별 중...",
+  "배고픔 해결사 출동 중...",
+  "맛집 데이터 분석 중...",
+  "최고의 한 끼를 찾는 중...",
+  "입맛 저격 준비 중...",
+];
+
 function naverSearchLink(item: RecommendationItem): string {
   const queryText = [item.name, item.address].filter(Boolean).join(" ");
   const query = encodeURIComponent(queryText || item.name);
@@ -118,6 +131,7 @@ export default function ResultsPage() {
   const [focusNonce, setFocusNonce] = useState(0);
   const [mapFocusTarget, setMapFocusTarget] = useState<MapFocusTarget>("selected");
   const [loading, setLoading] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState("");
   const [origin, setOrigin] = useState<Position | null>(null);
   const [provider, setProvider] = useState<MapProvider>("osm");
   const [countryCode, setCountryCode] = useState<string | null>(null);
@@ -169,6 +183,7 @@ export default function ResultsPage() {
     const useKakao = HAS_KAKAO_KEY && flow.countryCode === "KR";
     setProvider(useKakao ? "kakao" : "osm");
     setLoading(true);
+    setLoadingMessage(LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)]);
 
     try {
       const availability = await fetch(`/api/availability?country_code=${flow.countryCode}`).then(
@@ -250,6 +265,14 @@ export default function ResultsPage() {
     media.addEventListener?.("change", onChange);
     return () => media.removeEventListener?.("change", onChange);
   }, []);
+
+  useEffect(() => {
+    if (!loading) return;
+    const interval = setInterval(() => {
+      setLoadingMessage(LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)]);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [loading]);
 
   const reroll = () => {
     setSelectedPlaceId(null);
@@ -860,6 +883,18 @@ export default function ResultsPage() {
           </section>
         </div>
       ) : null}
+
+      {loading && (
+        <div className="loading-overlay" aria-live="polite" role="status">
+          <div className="loading-card">
+            <div className="loading-emoji" aria-hidden="true">🍽️</div>
+            <div className="loading-progress">
+              <div className="loading-progress-bar" />
+            </div>
+            <p className="loading-text">{loadingMessage}</p>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

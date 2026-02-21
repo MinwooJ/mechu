@@ -8,12 +8,15 @@ import type { RecommendationItem } from "@/lib/reco/types";
 
 type Position = { lat: number; lng: number };
 
+type SheetSnap = "collapsed" | "half" | "expanded";
+
 type Props = {
   origin: Position;
   items: RecommendationItem[];
   selectedPlaceId: string | null;
   mapFocusTarget: "selected" | "origin";
   focusNonce: number;
+  sheetSnap?: SheetSnap;
   onSelect: (placeId: string) => void;
 };
 
@@ -55,18 +58,26 @@ function EnsureInteractive({ stamp }: { stamp: string }) {
   return null;
 }
 
+function sheetHeightPx(snap: SheetSnap): number {
+  if (snap === "collapsed") return 176;
+  if (snap === "half") return 372;
+  return 0;
+}
+
 function FocusTarget({
   origin,
   items,
   selectedPlaceId,
   mapFocusTarget,
   focusNonce,
+  sheetSnap = "collapsed",
 }: {
   origin: Position;
   items: RecommendationItem[];
   selectedPlaceId: string | null;
   mapFocusTarget: "selected" | "origin";
   focusNonce: number;
+  sheetSnap?: SheetSnap;
 }) {
   const map = useMap();
 
@@ -90,12 +101,13 @@ function FocusTarget({
       return;
     }
 
-    // On mobile, keep the focused marker above the bottom sheet.
+    // On mobile, offset the marker into the visible area above the bottom sheet.
+    const sheetPx = sheetHeightPx(sheetSnap);
+    const upwardOffset = Math.round(sheetPx / 2);
     const markerPoint = map.latLngToContainerPoint(targetLatLng);
-    const upwardOffset = Math.round(Math.min(window.innerHeight * 0.18, 170));
     const adjustedCenter = map.containerPointToLatLng(L.point(markerPoint.x, markerPoint.y + upwardOffset));
     map.flyTo(adjustedCenter, nextZoom, { animate: true, duration: 0.35 });
-  }, [map, origin, items, selectedPlaceId, mapFocusTarget, focusNonce]);
+  }, [map, origin, items, selectedPlaceId, mapFocusTarget, focusNonce, sheetSnap]);
 
   return null;
 }
@@ -118,7 +130,7 @@ function itemIcon(rank: number, active: boolean): L.DivIcon {
   });
 }
 
-export default function InteractiveMap({ origin, items, selectedPlaceId, mapFocusTarget, focusNonce, onSelect }: Props) {
+export default function InteractiveMap({ origin, items, selectedPlaceId, mapFocusTarget, focusNonce, sheetSnap, onSelect }: Props) {
   const baseCenter = useMemo<L.LatLngExpression>(() => [origin.lat, origin.lng], [origin]);
 
   return (
@@ -136,6 +148,7 @@ export default function InteractiveMap({ origin, items, selectedPlaceId, mapFocu
         selectedPlaceId={selectedPlaceId}
         mapFocusTarget={mapFocusTarget}
         focusNonce={focusNonce}
+        sheetSnap={sheetSnap}
       />
 
       <Marker position={[origin.lat, origin.lng]} icon={originIcon()}>

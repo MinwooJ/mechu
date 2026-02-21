@@ -112,7 +112,7 @@ export default function OnboardingPage() {
         lat: latLng.lat,
         lng: latLng.lng,
         label: "좌표 검색 결과",
-        countryCode: prev?.countryCode,
+        countryCode: inferSearchCountry(latLng.lat, latLng.lng),
       }));
       return;
     }
@@ -220,7 +220,7 @@ export default function OnboardingPage() {
                           lat: next.lat,
                           lng: next.lng,
                           label: "지도에서 선택한 위치",
-                          countryCode: prev?.countryCode,
+                          countryCode: inferSearchCountry(next.lat, next.lng),
                         }))
                       }
                     />

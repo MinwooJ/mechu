@@ -6,12 +6,15 @@ import type { RecommendationItem } from "@/lib/reco/types";
 
 type Position = { lat: number; lng: number };
 
+type SheetSnap = "collapsed" | "half" | "expanded";
+
 type Props = {
   origin: Position;
   items: RecommendationItem[];
   selectedPlaceId: string | null;
   mapFocusTarget: "selected" | "origin";
   focusNonce: number;
+  sheetSnap?: SheetSnap;
   onSelect: (placeId: string) => void;
   onLoadFail?: () => void;
 };
@@ -47,7 +50,13 @@ function loadKakaoSdk(): Promise<void> {
   });
 }
 
-export default function KakaoMap({ origin, items, selectedPlaceId, mapFocusTarget, focusNonce, onSelect, onLoadFail }: Props) {
+function sheetHeightPx(snap?: SheetSnap): number {
+  if (snap === "half") return 372;
+  if (snap === "collapsed") return 176;
+  return 0;
+}
+
+export default function KakaoMap({ origin, items, selectedPlaceId, mapFocusTarget, focusNonce, sheetSnap, onSelect, onLoadFail }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -78,32 +87,16 @@ export default function KakaoMap({ origin, items, selectedPlaceId, mapFocusTarge
         const selectedLatLng = selectedItem ? new kakao.maps.LatLng(selectedItem.lat, selectedItem.lng) : null;
         const focusLatLng = mapFocusTarget === "origin" ? center : selectedLatLng;
         const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 980px)").matches;
-        const upwardOffset = isMobile ? Math.round(Math.min(window.innerHeight * 0.18, 170)) : 0;
+        const upwardOffsetPx = isMobile ? Math.round(sheetHeightPx(sheetSnap) / 2) : 0;
 
         const setFocusCenter = (target: unknown) => {
-          if (!upwardOffset) {
+          if (!upwardOffsetPx) {
             (map as unknown as { setCenter?: (latLng: unknown) => void }).setCenter?.(target);
             return;
           }
 
-          const projection = (map as unknown as { getProjection?: () => unknown }).getProjection?.() as
-            | {
-                containerPointFromCoords?: (coords: unknown) => { x: number; y: number };
-                coordsFromContainerPoint?: (point: unknown) => unknown;
-              }
-            | undefined;
-          const toPoint = projection?.containerPointFromCoords;
-          const toCoords = projection?.coordsFromContainerPoint;
-
-          if (toPoint && toCoords) {
-            const point = toPoint(target);
-            const shiftedPoint = new kakao.maps.Point(point.x, point.y + upwardOffset);
-            const shiftedCoords = toCoords(shiftedPoint);
-            (map as unknown as { setCenter?: (latLng: unknown) => void }).setCenter?.(shiftedCoords);
-            return;
-          }
-
           (map as unknown as { setCenter?: (latLng: unknown) => void }).setCenter?.(target);
+          (map as unknown as { panBy?: (x: number, y: number) => void }).panBy?.(0, upwardOffsetPx);
         };
 
         const originMarker = new kakao.maps.Marker({
@@ -178,7 +171,7 @@ export default function KakaoMap({ origin, items, selectedPlaceId, mapFocusTarge
       cleanups.forEach((fn) => fn());
       cleanups = [];
     };
-  }, [origin, items, selectedPlaceId, mapFocusTarget, focusNonce, onSelect, onLoadFail]);
+  }, [origin, items, selectedPlaceId, mapFocusTarget, focusNonce, sheetSnap, onSelect, onLoadFail]);
 
   if (failed) {
     return <div className="map-empty">Kakao 지도 로드 실패. OSM 지도로 대체합니다.</div>;
