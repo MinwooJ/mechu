@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { RandomnessLevel, RecommendMode } from "@/lib/reco/types";
 import FlowHeader from "@/app/components/flow-header";
 import { loadFlowState, saveFlowState } from "@/lib/flow/state";
+import { formatRadius } from "@/lib/i18n/format";
 import { useLocale, useLocaleHref, useT } from "@/lib/i18n/client";
 
 const VIBE_OPTIONS: Array<{
@@ -37,15 +38,6 @@ const VIBE_OPTIONS: Array<{
     descBKey: "preferences.vibe.exploreB",
   },
 ];
-
-function formatRadius(radius: number, locale: string): string {
-  const nf = new Intl.NumberFormat(locale);
-  if (radius >= 1000) {
-    const value = (radius / 1000).toFixed(radius % 1000 === 0 ? 0 : 1);
-    return locale === "en" ? `${value} km` : `${value}km`;
-  }
-  return locale === "en" ? `${nf.format(radius)} m` : `${nf.format(radius)}m`;
-}
 
 export default function PreferencesPage() {
   const router = useRouter();

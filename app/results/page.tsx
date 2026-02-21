@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import FlowHeader from "@/app/components/flow-header";
 import { getSessionId, loadFlowState, saveFlowState } from "@/lib/flow/state";
 import { useLocale, useLocaleHref, useT } from "@/lib/i18n/client";
+import { formatDistance, formatRadius } from "@/lib/i18n/format";
 import type {
   AvailabilityResponse,
   RandomnessLevel,
@@ -57,6 +58,7 @@ const LOADING_MESSAGE_KEYS = [
   "results.loading.msg9",
   "results.loading.msg10",
 ] as const;
+const UNKNOWN_REASON_LOGGED = new Set<string>();
 
 function naverSearchLink(item: RecommendationItem): string {
   const queryText = [item.name, item.address].filter(Boolean).join(" ");
@@ -85,25 +87,15 @@ function localizeReason(reason: string, t: (key: string) => string): string {
     "Popular now": t("results.reason.popular"),
     "Hidden gem pick": t("results.reason.hiddenGem"),
   };
-  return table[reason] ?? reason;
-}
+  const translated = table[reason];
+  if (translated) return translated;
 
-function formatDistance(distanceMeters: number, locale: string): string {
-  const nf = new Intl.NumberFormat(locale);
-  if (distanceMeters >= 1000) {
-    const value = (distanceMeters / 1000).toFixed(distanceMeters % 1000 === 0 ? 0 : 1);
-    return locale === "en" ? `${value} km` : `${value}km`;
+  if (!UNKNOWN_REASON_LOGGED.has(reason)) {
+    UNKNOWN_REASON_LOGGED.add(reason);
+    console.warn(`[i18n] Unmapped recommendation reason: "${reason}"`);
   }
-  return locale === "en" ? `${nf.format(distanceMeters)} m` : `${nf.format(distanceMeters)}m`;
-}
 
-function formatRadius(radiusMeters: number, locale: string): string {
-  const nf = new Intl.NumberFormat(locale);
-  if (radiusMeters >= 1000) {
-    const value = (radiusMeters / 1000).toFixed(radiusMeters % 1000 === 0 ? 0 : 1);
-    return locale === "en" ? `${value} km` : `${value}km`;
-  }
-  return locale === "en" ? `${nf.format(radiusMeters)} m` : `${nf.format(radiusMeters)}m`;
+  return reason;
 }
 
 function inferSearchCountry(lat: number, lng: number): string {

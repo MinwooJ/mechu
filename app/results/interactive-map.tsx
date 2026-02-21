@@ -5,6 +5,7 @@ import L from "leaflet";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 
 import type { Locale } from "@/lib/i18n/config";
+import { formatDistance } from "@/lib/i18n/format";
 import { t as translate } from "@/lib/i18n/messages";
 import type { RecommendationItem } from "@/lib/reco/types";
 
@@ -22,15 +23,6 @@ type Props = {
   locale: Locale;
   onSelect: (placeId: string) => void;
 };
-
-function formatDistance(distanceMeters: number, locale: Locale): string {
-  const nf = new Intl.NumberFormat(locale);
-  if (distanceMeters >= 1000) {
-    const value = (distanceMeters / 1000).toFixed(distanceMeters % 1000 === 0 ? 0 : 1);
-    return locale === "en" ? `${value} km` : `${value}km`;
-  }
-  return locale === "en" ? `${nf.format(distanceMeters)} m` : `${nf.format(distanceMeters)}m`;
-}
 
 function FitBounds({
   origin,
