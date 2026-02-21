@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
@@ -16,7 +16,7 @@ import type {
 
 type Position = { lat: number; lng: number };
 type MapProvider = "osm" | "kakao";
-type SheetSnap = "collapsed" | "half";
+type SheetSnap = "collapsed" | "half" | "expanded";
 type MapFocusTarget = "selected" | "origin";
 type GeocodeResponse = {
   ok: boolean;
@@ -136,8 +136,13 @@ export default function ResultsPage() {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [sheetSnap, setSheetSnap] = useState<SheetSnap>("collapsed");
   const [sheetDragging, setSheetDragging] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState<boolean>(() =>
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 980px)").matches : false,
+  );
   const dragStartYRef = useRef<number | null>(null);
   const dragMovedRef = useRef(false);
+  const dragStartInStickyRef = useRef(false);
+  const suppressCardClickUntilRef = useRef(0);
   const useKrLinks = countryCode === "KR";
   const modeLabel = flowMode === "dinner" ? "저메추" : "점메추";
   const radiusLabel = formatRadius(flowRadius);
@@ -237,6 +242,15 @@ export default function ResultsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(max-width: 980px)");
+    const onChange = () => setIsMobileViewport(media.matches);
+    onChange();
+    media.addEventListener?.("change", onChange);
+    return () => media.removeEventListener?.("change", onChange);
+  }, []);
+
   const reroll = () => {
     setSelectedPlaceId(null);
     setMapFocusTarget("selected");
@@ -301,7 +315,7 @@ export default function ResultsPage() {
         lat: latLng.lat,
         lng: latLng.lng,
         label: "좌표 검색 결과",
-        countryCode: locationPreview?.countryCode,
+        countryCode: undefined,
       });
       return;
     }
@@ -359,13 +373,28 @@ export default function ResultsPage() {
     );
   };
 
-  const applyLocationChanges = () => {
+  const applyLocationChanges = async () => {
     if (!locationPreview) {
       setLocationError("지도로 위치를 찍거나 검색으로 위치를 선택해 주세요.");
       return;
     }
 
-    const nextCountry = locationPreview.countryCode ?? inferSearchCountry(locationPreview.lat, locationPreview.lng);
+    let nextCountry = locationPreview.countryCode;
+    if (!nextCountry) {
+      try {
+        const res = await fetch(`/api/geocode?lat=${locationPreview.lat}&lng=${locationPreview.lng}`);
+        const data = (await res.json()) as GeocodeResponse;
+        if (data.ok && data.country_code) {
+          nextCountry = normalizeCountryCode(data.country_code);
+        }
+      } catch {
+        // reverse geocode failed — fall through to inferSearchCountry
+      }
+    }
+    if (!nextCountry) {
+      nextCountry = inferSearchCountry(locationPreview.lat, locationPreview.lng);
+    }
+
     const flow = loadFlowState();
     saveFlowState({
       ...flow,
@@ -379,78 +408,147 @@ export default function ResultsPage() {
     loadResults();
   };
 
-  const selectPlace = (placeId: string) => {
+  const snapIndex = (snap: SheetSnap) => {
+    if (snap === "collapsed") return 0;
+    if (snap === "half") return 1;
+    return 2;
+  };
+
+  const snapFromIndex = (index: number): SheetSnap => {
+    const safe = Math.max(0, Math.min(2, index));
+    if (safe <= 0) return "collapsed";
+    if (safe === 1) return "half";
+    return "expanded";
+  };
+
+  const beginSheetDrag = (
+    e: ReactPointerEvent<HTMLElement>,
+    opts: {
+      force?: boolean;
+    } = {},
+  ) => {
+    if (!isMobileViewport) return;
+    const targetEl = e.target as HTMLElement | null;
+    const tag = targetEl?.tagName?.toLowerCase() ?? "";
+    if (!opts.force && ["a","button","input","textarea","select"].includes(tag)) return;
+
+    const panel = e.currentTarget as HTMLElement;
+    if (!opts.force && sheetSnap === "expanded" && panel.scrollTop > 2) return;
+    dragStartInStickyRef.current = opts.force || Boolean(targetEl?.closest(".mobile-sheet-sticky"));
+
+    dragStartYRef.current = e.clientY;
+    dragMovedRef.current = false;
+    setSheetDragging(false);
+  };
+
+  const endSheetDrag = (e: ReactPointerEvent<HTMLElement>) => {
+    if (dragStartYRef.current === null) return;
+
+    const delta = e.clientY - dragStartYRef.current;
+    const moved = dragMovedRef.current;
+    if (moved) {
+      if (delta > 40) shiftSnap(-1);
+      if (delta < -40) shiftSnap(1);
+      suppressCardClickUntilRef.current = Date.now() + 240;
+    } else if (dragStartInStickyRef.current) {
+      setSheetSnap((prev) => {
+        if (prev === "collapsed") return "half";
+        if (prev === "half") return "expanded";
+        return "half";
+      });
+    }
+
+    dragStartYRef.current = null;
+    dragMovedRef.current = false;
+    dragStartInStickyRef.current = false;
+    setSheetDragging(false);
+    const panel = e.currentTarget as HTMLElement;
+    if (moved && panel.hasPointerCapture(e.pointerId)) {
+      panel.releasePointerCapture(e.pointerId);
+    }
+  };
+
+  const cancelSheetDrag = (e: ReactPointerEvent<HTMLElement>) => {
+    dragStartYRef.current = null;
+    dragMovedRef.current = false;
+    dragStartInStickyRef.current = false;
+    setSheetDragging(false);
+    const panel = e.currentTarget as HTMLElement;
+    if (panel.hasPointerCapture(e.pointerId)) {
+      panel.releasePointerCapture(e.pointerId);
+    }
+  };
+
+  const onSheetPointerDown = (e: ReactPointerEvent<HTMLElement>) => {
+    beginSheetDrag(e);
+  };
+
+  const onSheetPointerMove = (e: ReactPointerEvent<HTMLElement>) => {
+    if (dragStartYRef.current === null) return;
+    const delta = e.clientY - dragStartYRef.current;
+    if (!dragMovedRef.current && Math.abs(delta) > 6) {
+      dragMovedRef.current = true;
+      setSheetDragging(true);
+      const panel = e.currentTarget as HTMLElement;
+      if (!panel.hasPointerCapture(e.pointerId)) {
+        panel.setPointerCapture(e.pointerId);
+      }
+    }
+    if (dragMovedRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
+  const onSheetPointerUp = (e: ReactPointerEvent<HTMLElement>) => {
+    endSheetDrag(e);
+  };
+
+  const onSheetPointerCancel = (e: ReactPointerEvent<HTMLElement>) => {
+    cancelSheetDrag(e);
+  };
+
+  const onGrabberPointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    beginSheetDrag(e, { force: true });
+  };
+
+  const onGrabberPointerMove = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    onSheetPointerMove(e);
+  };
+
+  const onGrabberPointerUp = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    onSheetPointerUp(e);
+  };
+
+  const onGrabberPointerCancel = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    onSheetPointerCancel(e);
+  };
+
+  const selectPlace = useCallback((placeId: string) => {
+    if (Date.now() < suppressCardClickUntilRef.current) return;
     setSelectedPlaceId(placeId);
     setMapFocusTarget("selected");
     setFocusNonce((prev) => prev + 1);
-  };
+    setSheetSnap((prev) => (prev === "expanded" ? "half" : prev));
+  }, []);
+
+  const handleKakaoLoadFail = useCallback(() => setProvider("osm"), []);
 
   const focusOrigin = () => {
     setMapFocusTarget("origin");
     setFocusNonce((prev) => prev + 1);
   };
 
-  const snapIndex = (snap: SheetSnap) => {
-    if (snap === "collapsed") return 0;
-    return 1;
-  };
-
-  const snapFromIndex = (index: number): SheetSnap => {
-    if (index <= 0) return "collapsed";
-    return "half";
-  };
+  const compactMobileCards = isMobileViewport && sheetSnap === "half";
+  const expandedFitCards = isMobileViewport && sheetSnap === "expanded";
+  const showMobileCards = !isMobileViewport || sheetSnap !== "collapsed";
 
   const shiftSnap = (delta: -1 | 1) => {
     setSheetSnap((prev) => snapFromIndex(snapIndex(prev) + delta));
   };
 
-  const onGrabberPointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
-    if (window.innerWidth > 980) return;
-    dragStartYRef.current = e.clientY;
-    dragMovedRef.current = false;
-    setSheetDragging(true);
-    e.currentTarget.setPointerCapture(e.pointerId);
-  };
-
-  const onGrabberPointerMove = (e: ReactPointerEvent<HTMLButtonElement>) => {
-    if (!sheetDragging || dragStartYRef.current === null) return;
-    const delta = e.clientY - dragStartYRef.current;
-    if (Math.abs(delta) > 6) {
-      dragMovedRef.current = true;
-    }
-    e.preventDefault();
-  };
-
-  const onGrabberPointerUp = (e: ReactPointerEvent<HTMLButtonElement>) => {
-    if (!sheetDragging || dragStartYRef.current === null) return;
-
-    const delta = e.clientY - dragStartYRef.current;
-    if (dragMovedRef.current) {
-      if (delta > 40) shiftSnap(-1);
-      if (delta < -40) shiftSnap(1);
-    } else {
-      setSheetSnap((prev) => (prev === "half" ? "collapsed" : "half"));
-    }
-
-    dragStartYRef.current = null;
-    dragMovedRef.current = false;
-    setSheetDragging(false);
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-  };
-
-  const onGrabberPointerCancel = (e: ReactPointerEvent<HTMLButtonElement>) => {
-    dragStartYRef.current = null;
-    dragMovedRef.current = false;
-    setSheetDragging(false);
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-  };
-
   return (
-    <main className="flow-page results">
+    <main className={`flow-page results results-sheet-${sheetSnap}`}>
       <FlowHeader />
 
       <header className="result-top section-shell">
@@ -471,29 +569,39 @@ export default function ResultsPage() {
         <article className="map-panel">
           {origin ? (
             <div className="result-map-wrap">
-              {provider === "kakao" ? (
-                <KakaoMap
-                  origin={origin}
-                  items={items}
-                  selectedPlaceId={selected?.place_id ?? null}
-                  mapFocusTarget={mapFocusTarget}
-                  focusNonce={focusNonce}
-                  onSelect={selectPlace}
-                  onLoadFail={() => setProvider("osm")}
-                />
-              ) : (
-                <InteractiveMap
-                  origin={origin}
-                  items={items}
-                  selectedPlaceId={selected?.place_id ?? null}
-                  mapFocusTarget={mapFocusTarget}
-                  focusNonce={focusNonce}
-                  onSelect={selectPlace}
-                />
-              )}
-              <button type="button" className="map-origin-btn" onClick={focusOrigin} aria-label="검색 기준 위치로 이동">
-                <span aria-hidden>◎</span>
-              </button>
+              <div className="result-map-canvas">
+                {provider === "kakao" ? (
+                  <KakaoMap
+                    origin={origin}
+                    items={items}
+                    selectedPlaceId={selected?.place_id ?? null}
+                    mapFocusTarget={mapFocusTarget}
+                    focusNonce={focusNonce}
+                    sheetSnap={sheetSnap}
+                    onSelect={selectPlace}
+                    onLoadFail={handleKakaoLoadFail}
+                  />
+                ) : (
+                  <InteractiveMap
+                    origin={origin}
+                    items={items}
+                    selectedPlaceId={selected?.place_id ?? null}
+                    mapFocusTarget={mapFocusTarget}
+                    focusNonce={focusNonce}
+                    sheetSnap={sheetSnap}
+                    onSelect={selectPlace}
+                  />
+                )}
+                <button type="button" className="map-origin-btn" onClick={focusOrigin} aria-label="검색 기준 위치로 이동">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <circle cx="10" cy="10" r="4" fill="#f48c25" />
+                    <line x1="10" y1="0" x2="10" y2="6" stroke="#f6efe7" strokeWidth="2" strokeLinecap="round" />
+                    <line x1="10" y1="14" x2="10" y2="20" stroke="#f6efe7" strokeWidth="2" strokeLinecap="round" />
+                    <line x1="0" y1="10" x2="6" y2="10" stroke="#f6efe7" strokeWidth="2" strokeLinecap="round" />
+                    <line x1="14" y1="10" x2="20" y2="10" stroke="#f6efe7" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
               <p className="muted">
                 {provider === "kakao"
                   ? "한국에서는 Kakao Map으로 표시됩니다. M: 내 위치 · 주황 포인트: 추천 식당"
@@ -505,7 +613,13 @@ export default function ResultsPage() {
           )}
         </article>
 
-        <article className={`cards-panel mobile-sheet sheet-${sheetSnap}${sheetDragging ? " dragging" : ""}`}>
+        <article
+          className={`cards-panel mobile-sheet sheet-${sheetSnap}${sheetDragging ? " dragging" : ""}`}
+          onPointerDown={isMobileViewport ? onSheetPointerDown : undefined}
+          onPointerMove={isMobileViewport ? onSheetPointerMove : undefined}
+          onPointerUp={isMobileViewport ? onSheetPointerUp : undefined}
+          onPointerCancel={isMobileViewport ? onSheetPointerCancel : undefined}
+        >
           <div className="mobile-sheet-sticky">
             <button
               type="button"
@@ -526,40 +640,76 @@ export default function ResultsPage() {
               </div>
             </div>
           </div>
-          {items.map((item, idx) => (
-            <article
-              key={item.place_id}
-              className={`result-card ${selected?.place_id === item.place_id ? "active" : ""}`}
-              onClick={() => selectPlace(item.place_id)}
-            >
-              <div className="title-row">
-                <h3>
-                  {item.name}
-                  <small>{item.address || "주소 정보 없음"}</small>
-                </h3>
-                <span className="chip-rank">#{idx + 1} MATCH</span>
-              </div>
-              <div className="result-tags">
-                <p className="meta">{formatDistance(item.distance_m)}</p>
-                <p className="meta">{"₩".repeat(item.price_level)}</p>
-                <p className="meta">★{item.rating}</p>
-              </div>
-              <p className="reason"><span className="category-chip">{item.raw_category || item.category || "기타"}</span></p>
-              <p className="reason">{item.why.map(localizeReason).join(" · ") || "추천 이유 계산 중"}</p>
-              <div className="btn-row">
-                {useKrLinks ? (
-                  <>
-                    {kakaoPlaceIdMapLink(item) ? (
-                      <a className="btn-link" href={kakaoPlaceIdMapLink(item) ?? "#"} target="_blank" rel="noreferrer">카카오 지도 보기</a>
-                    ) : null}
-                    <a className="btn-ghost" href={naverSearchLink(item)} target="_blank" rel="noreferrer">네이버 지도 보기</a>
-                  </>
-                ) : (
-                  <a className="btn-link" href={googlePlaceLink(item)} target="_blank" rel="noreferrer">구글 지도 보기</a>
-                )}
-              </div>
-            </article>
-          ))}
+          {showMobileCards ? (
+            <div className={`mobile-cards-list ${compactMobileCards ? "compact" : expandedFitCards ? "expanded-fit" : "full"}`}>
+              {items.map((item, idx) => (
+                <article
+                  key={item.place_id}
+                  className={`result-card ${compactMobileCards ? "compact" : ""} ${expandedFitCards ? "expanded-fit" : ""} ${selected?.place_id === item.place_id ? "active" : ""}`}
+                  onClick={() => selectPlace(item.place_id)}
+                >
+                  <div className="title-row">
+                    <h3>
+                      {item.name}
+                      {compactMobileCards ? null : <small>{item.address || "주소 정보 없음"}</small>}
+                    </h3>
+                    <span className="chip-rank">#{idx + 1} MATCH</span>
+                  </div>
+
+                  {compactMobileCards ? (
+                    <div className="result-tags compact-tags">
+                      <p className="meta">{item.raw_category || item.category || "기타"}</p>
+                      <p className="meta">{formatDistance(item.distance_m)}</p>
+                      <p className="meta">★{item.rating}</p>
+                    </div>
+                  ) : expandedFitCards ? (
+                    <>
+                      <div className="result-tags expanded-tags">
+                        <p className="meta">{formatDistance(item.distance_m)}</p>
+                        <p className="meta">{item.raw_category || item.category || "기타"}</p>
+                        <p className="meta">★{item.rating}</p>
+                      </div>
+                      <p className="reason">{item.why.map(localizeReason).join(" · ") || "추천 이유 계산 중"}</p>
+                      <div className="btn-row expanded-fit-btn-row">
+                        {useKrLinks ? (
+                          <>
+                            {kakaoPlaceIdMapLink(item) ? (
+                              <a className="btn-link" href={kakaoPlaceIdMapLink(item) ?? "#"} target="_blank" rel="noreferrer">카카오지도</a>
+                            ) : null}
+                            <a className="btn-ghost" href={naverSearchLink(item)} target="_blank" rel="noreferrer">네이버지도</a>
+                          </>
+                        ) : (
+                          <a className="btn-link" href={googlePlaceLink(item)} target="_blank" rel="noreferrer">지도 보기</a>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="result-tags">
+                        <p className="meta">{formatDistance(item.distance_m)}</p>
+                        <p className="meta">{"₩".repeat(item.price_level)}</p>
+                        <p className="meta">★{item.rating}</p>
+                      </div>
+                      <p className="reason"><span className="category-chip">{item.raw_category || item.category || "기타"}</span></p>
+                      <p className="reason">{item.why.map(localizeReason).join(" · ") || "추천 이유 계산 중"}</p>
+                      <div className="btn-row">
+                        {useKrLinks ? (
+                          <>
+                            {kakaoPlaceIdMapLink(item) ? (
+                              <a className="btn-link" href={kakaoPlaceIdMapLink(item) ?? "#"} target="_blank" rel="noreferrer">카카오 지도 보기</a>
+                            ) : null}
+                            <a className="btn-ghost" href={naverSearchLink(item)} target="_blank" rel="noreferrer">네이버 지도 보기</a>
+                          </>
+                        ) : (
+                          <a className="btn-link" href={googlePlaceLink(item)} target="_blank" rel="noreferrer">구글 지도 보기</a>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </article>
+              ))}
+            </div>
+          ) : null}
         </article>
       </section>
 
@@ -686,7 +836,7 @@ export default function ResultsPage() {
                           lat: next.lat,
                           lng: next.lng,
                           label: "지도에서 선택한 위치",
-                          countryCode: locationPreview?.countryCode,
+                          countryCode: undefined,
                         })
                       }
                     />
