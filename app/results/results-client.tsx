@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
 import FlowHeader from "@/app/components/flow-header";
-import { getSessionId, loadFlowState, saveFlowState, type FlowState } from "@/lib/flow/state";
+import { getSessionId, loadFlowState, resolveFlowCountryCode, saveFlowState, type FlowState } from "@/lib/flow/state";
 import { inferSearchCountry, normalizeCountryCode, parseLatLng } from "@/lib/geo/location";
 import { useLocale, useLocaleHref, useT } from "@/lib/i18n/client";
 import { formatDistance, formatRadius } from "@/lib/i18n/format";
@@ -75,7 +75,7 @@ type ResultsCacheStore = Record<string, ResultsCacheEntry>;
 function buildResultsFlowKey(flow: FlowState): string | null {
   if (!flow.position) return null;
 
-  const country = normalizeCountryCode(flow.countryCode) ?? "US";
+  const country = resolveFlowCountryCode(flow);
   return [
     country,
     flow.mode,
@@ -275,6 +275,7 @@ export default function ResultsPage() {
 
   const loadResults = async (options?: { forceRefresh?: boolean }) => {
     const flow = loadFlowState();
+    const resolvedCountry = resolveFlowCountryCode(flow);
 
     if (!flow.position) {
       router.replace(toLocale("/status?kind=need_location"));
@@ -282,11 +283,11 @@ export default function ResultsPage() {
     }
 
     setOrigin(flow.position);
-    setCountryCode(flow.countryCode ?? null);
+    setCountryCode(resolvedCountry);
     setFlowMode(flow.mode);
     setFlowRadius(flow.radius);
     setFlowRandomness(flow.randomness);
-    const useKakao = HAS_KAKAO_KEY && flow.countryCode === "KR";
+    const useKakao = HAS_KAKAO_KEY && resolvedCountry === "KR";
     setProvider(useKakao ? "kakao" : "osm");
 
     const flowKey = buildResultsFlowKey(flow);
@@ -304,7 +305,7 @@ export default function ResultsPage() {
     setLoadingMessage(loadingMessages[Math.floor(Math.random() * loadingMessages.length)] ?? t("common.loading"));
 
     try {
-      const availability = await fetch(`/api/availability?country_code=${flow.countryCode}`).then(
+      const availability = await fetch(`/api/availability?country_code=${encodeURIComponent(resolvedCountry)}`).then(
         (r) => r.json() as Promise<AvailabilityResponse>,
       );
 
@@ -322,7 +323,7 @@ export default function ResultsPage() {
           mode: flow.mode,
           radius_m: flow.radius,
           randomness_level: flow.randomness,
-          country_code: flow.countryCode,
+          country_code: resolvedCountry,
           session_id: getSessionId(),
         }),
       });
@@ -357,7 +358,7 @@ export default function ResultsPage() {
           event_type: "impression",
           session_id: getSessionId(),
           mode: flow.mode,
-          search_country: flow.countryCode,
+          search_country: resolvedCountry,
         }),
       }).catch(() => {
         // Logging failure should not block showing recommendations.
