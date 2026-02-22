@@ -1,0 +1,37 @@
+[Ticket]
+- id: seo-search-console-p0
+- lane: multi
+- owner-agent: orchestrator
+- goal: Implement SEO P0 (canonical/hreflang, sitemap, robots) and Search Console operational runbook for global locales.
+- editable-paths:
+  - app/[locale]/**
+  - app/sitemap.ts
+  - app/robots.ts
+  - lib/seo/**
+  - docs/**
+  - README.md
+  - .agents/**
+- non-goals:
+  - Google Ads setup
+  - Recommendation/map feature changes
+  - Automated Search Console UI actions
+- assumptions:
+  - Canonical base URL is controlled by `NEXT_PUBLIC_SITE_URL`
+  - Until final domain confirmation, fallback base URL is `https://mechu.app`
+- clarification-questions:
+  - Confirm final production canonical domain (`mechu.app` vs `www.mechu.app`)
+  - Confirm whether `/status` should stay indexable
+- approval-status: approved
+- approval-note: User asked to execute `.agents/requests/seo_search_console_request.md` with multi-agent workflow.
+- done-criteria:
+  - Locale pages emit canonical + hreflang alternates consistently
+  - `robots.txt` disallows API crawling and exposes sitemap
+  - `sitemap.xml` includes locale URLs and alternates
+  - Search Console docs/checklist added for operator handoff
+- verification:
+  - npx tsc --noEmit
+  - npm run build
+  - npm run cf:build
+  - npm run test:e2e
+- risks:
+  - Search Console submission and ownership verification remain manual operator tasks.
