@@ -2,6 +2,8 @@
 
 글로벌 서비스 전환 시 놓치지 않기 위한 체크리스트입니다.
 
+마지막 업데이트: 2026-02-22 (KST)
+
 운영 원칙:
 
 - P0/P1 항목은 `global-growth-agent`가 오너, `design-agent`/`platform-agent`/`frontend-agent`가 공동 수행
@@ -13,33 +15,53 @@
 
 ### 1) 다국어(i18n) [Owner: global-growth-agent + design-agent]
 
-- [ ] 지원 언어 1차 범위 확정 (`ko`, `en` 최소)
-- [ ] URL 전략 확정 (`/ko`, `/en` 경로 기반)
-- [ ] 기본 언어/국가 결정 로직 정의 (브라우저 언어 + 사용자 선택 우선)
-- [ ] 언어 전환 UI(헤더/설정) 추가
-- [ ] UI 문자열 분리 (`messages/ko.json`, `messages/en.json`)
-- [ ] 번역 키 체계 정리 (서버/클라이언트 공통)
-- [ ] 상태/에러/버튼 문구 번역 완료
-- [ ] 거리/숫자/날짜 로케일 포맷 적용 (`Intl`)
-- [ ] `hreflang` + `canonical` 메타 적용
+- [x] 지원 언어 1차 범위 확정 (`ko`, `en` 최소)
+- [x] URL 전략 확정 (`/ko`, `/en` 경로 기반)
+- [x] 기본 언어/국가 결정 로직 정의 (브라우저 언어 + 사용자 선택 우선)
+- [x] 언어 전환 UI(헤더/설정) 추가
+- [x] UI 문자열 분리 (`messages/ko.json`, `messages/en.json`)
+- [x] 번역 키 체계 정리 (서버/클라이언트 공통)
+- [x] 상태/에러/버튼 문구 번역 완료
+- [x] 거리/숫자/날짜 로케일 포맷 적용 (`Intl`)
+- [x] `hreflang` + `canonical` 메타 적용
+
+현재 구현 상태 메모:
+- 실제 지원 언어: `ko`, `en`, `ja`, `zh-Hant`
+- locale prefix 라우팅 + 언어 스위처 + 쿠키/Accept-Language/IP fallback 동작 중
+- 관련 가이드: `docs/i18n-guide.md`
 
 ### 2) SEO + Search Console [Owner: global-growth-agent]
 
 - [ ] 프로덕션 도메인 확정 + HTTPS 강제
-- [ ] `sitemap.xml` 생성/배포 (언어별 URL 포함)
-- [ ] `robots.txt` 점검 (`/api` 비노출, 주요 페이지 허용)
+- [x] `sitemap.xml` 생성 (언어별 URL 포함)
+- [x] `robots.txt` 점검 (`/api` 비노출, 주요 페이지 허용)
+- [ ] `sitemap.xml` 배포 확인 + 제출
 - [ ] Search Console 속성 등록 (Domain property 우선 검토)
 - [ ] DNS TXT 소유권 인증
 - [ ] 사이트맵 제출
-- [ ] 핵심 URL 인덱싱 점검 (onboarding/preferences/results/status)
+- [ ] 핵심 URL 인덱싱 점검 (onboarding/preferences/results, status는 noindex 정책)
 - [ ] 크롤링 오류/모바일 사용성/핵심 성능 지표 모니터링 루틴 수립
+
+현재 구현 상태 메모:
+- canonical/hreflang/OG/Twitter 메타: locale 페이지 기준 적용 완료
+- `status` 페이지: `noindex, nofollow` 적용
+- `sitemap.xml`: indexable 섹션(`onboarding/preferences/results`)만 포함 (4 locale x 3 = 12 URL)
+- `robots.txt`: `Disallow: /api` + sitemap 경로 노출
+- 관련 가이드: `docs/seo-search-console-guide.md`
 
 ### 3) Prerender/렌더링 전략 [Owner: global-growth-agent + frontend-agent + design-agent]
 
-- [ ] 정적 생성 가능한 경로 목록 정의
-- [ ] locale 경로별 prerender 전략 수립
-- [ ] 메타데이터(og/canonical/alternates) 자동 생성 구조 점검
-- [ ] 페이지별 로딩/오류 상태가 인덱싱 품질을 해치지 않는지 점검
+- [x] 정적 생성 가능한 경로 목록 정의
+- [x] locale 경로별 prerender 전략 수립
+- [x] 메타데이터(og/canonical/alternates) 자동 생성 구조 점검
+- [x] 페이지별 로딩/오류 상태가 인덱싱 품질을 해치지 않는지 점검
+
+현재 구현 상태 메모:
+- locale 4종(`ko`, `en`, `ja`, `zh-Hant`)은 `generateStaticParams + dynamicParams=false`로 SSG 고정
+- `/{locale}/onboarding|preferences|results|status`는 `dynamic=\"force-static\"` + 클라이언트 하이드레이션 전략 적용
+- 레거시 경로(`/onboarding`, `/preferences`, `/results`, `/status`, `/`)는 정적 redirect 경로로 정리
+- `status`는 `noindex` 유지, 결과 로딩/오류는 클라이언트 상태 처리 + status 라우트 fallback
+- 상세 문서: `docs/rendering-strategy.md`
 
 ### 4) Google Ads 도입 준비 [Owner: global-growth-agent]
 
@@ -100,10 +122,19 @@
 
 ## 완료 기준 (Definition of Done)
 
-- [ ] 다국어 최소 2개 언어로 핵심 플로우 100% 동작
+- [x] 다국어 최소 2개 언어로 핵심 플로우 100% 동작
 - [ ] Search Console 속성 검증 및 사이트맵 제출 완료
 - [ ] Ads 랜딩 품질 점검 통과 + 전환 수집 확인
 - [ ] 동의/개인정보 문서 및 UI 반영 완료
+
+---
+
+## 최근 검증 로그 (요약)
+
+- [x] `npx tsc --noEmit`
+- [x] `npm run build`
+- [x] `npm run cf:build`
+- [x] `npx playwright test tests/e2e/seo.spec.ts`
 
 ---
 
@@ -131,4 +162,3 @@
   https://support.google.com/adspolicy/answer/16428019
 - Consent mode on websites
   https://developers.google.com/tag-platform/security/guides/consent
-

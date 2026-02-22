@@ -5,8 +5,10 @@ import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 
 import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale } from "@/lib/i18n/config";
+import { getMetadataBase } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = {
+  metadataBase: getMetadataBase(),
   title: "mechu",
   description: "Location-based lunch and dinner recommendation.",
   icons: {

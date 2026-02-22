@@ -17,7 +17,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: `npm run dev:e2e`,
+    command: `NEXT_PUBLIC_SITE_URL=${BASE_URL} npm run dev:e2e`,
     url: `${BASE_URL}/en/onboarding`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

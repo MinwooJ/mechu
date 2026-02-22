@@ -1,0 +1,28 @@
+[Handoff]
+- agent: orchestrator
+- ticket-id: seo-search-console-p0
+- changed-files:
+  - .agents/tickets/seo-search-console-p0.md
+  - app/[locale]/layout.tsx
+  - app/[locale]/onboarding/page.tsx
+  - app/[locale]/preferences/page.tsx
+  - app/[locale]/results/page.tsx
+  - app/[locale]/status/page.tsx
+  - app/robots.ts
+  - app/sitemap.ts
+  - lib/seo/metadata.ts
+  - docs/seo-search-console-guide.md
+  - docs/todo-global-launch.md
+  - README.md
+- summary: Added locale-aware canonical/hreflang metadata, generated robots and sitemap routes, and documented Search Console setup/monitoring runbook for global launch.
+- validations:
+  - npx tsc --noEmit (pass)
+  - npm run build (pass)
+  - npm run cf:build (pass)
+  - npm run test:e2e (21 pass, 1 skipped)
+  - manual check: `/ko/onboarding`, `/en/results` meta tags include canonical + alternates
+  - manual check: `/robots.txt`, `/sitemap.xml` output verified
+- residual-risks:
+  - Domain property creation, DNS TXT verification, sitemap submission, and URL inspection remain manual operations in Search Console.
+  - Canonical base URL uses fallback `https://mechu.app` when `NEXT_PUBLIC_SITE_URL` is unset; production env must define final domain explicitly.
+- next-owner: qa

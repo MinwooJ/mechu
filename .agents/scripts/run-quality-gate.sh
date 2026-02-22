@@ -2,6 +2,11 @@
 set -euo pipefail
 
 lane="${1:-fast}"
+default_site_url="https://mechu.app"
+
+run_with_build_env() {
+  NEXT_PUBLIC_SITE_URL="${NEXT_PUBLIC_SITE_URL:-$default_site_url}" "$@"
+}
 
 run_fast() {
   npx tsc --noEmit
@@ -9,15 +14,15 @@ run_fast() {
 
 run_standard() {
   npx tsc --noEmit
-  npm run build
+  run_with_build_env npm run build
 }
 
 run_multi() {
   npx tsc --noEmit
-  npm run build
-  npm run cf:build
+  run_with_build_env npm run build
+  run_with_build_env npm run cf:build
 
-  if npm run --silent 2>/dev/null | rg -q '^  test:e2e$|^test:e2e$'; then
+  if npm pkg get scripts.test:e2e 2>/dev/null | rg -qv 'null'; then
     npm run test:e2e
   else
     echo "No test:e2e script configured; skipping e2e execution."

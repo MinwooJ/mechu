@@ -71,6 +71,18 @@
   - `lib/i18n/messages/ko.json`, `lib/i18n/messages/en.json`
   - `lib/i18n/messages/ja.json`, `lib/i18n/messages/zh-Hant.json`
 
+## SEO + Search Console
+
+- locale별 canonical + hreflang(alternates) 적용 대상:
+  - `/{locale}/onboarding`
+  - `/{locale}/preferences`
+  - `/{locale}/results`
+- `/{locale}/status`는 상태/오류 안내 성격이라 `noindex` 처리됩니다.
+- `sitemap.xml`은 인덱싱 대상 경로(`onboarding/preferences/results`)를 locale별로 자동 생성합니다.
+- `robots.txt`는 `/api`를 비허용(disallow)하고 `sitemap.xml`을 노출합니다.
+- canonical/og 절대 URL 기준은 `NEXT_PUBLIC_SITE_URL`입니다.
+- 운영 절차 문서: `docs/seo-search-console-guide.md`
+
 ## 기술 스택
 
 - Next.js 15 (App Router)
@@ -125,6 +137,12 @@ cp .env.local.example .env.local
   - Kakao Local 검색 데이터
 - `NEXT_PUBLIC_KAKAO_MAP_API_KEY` (KR 지도 렌더링)
   - 브라우저에서 Kakao Map SDK 로드
+- `NEXT_PUBLIC_SITE_URL` (SEO 필수)
+  - 예: `https://mechu.app`
+  - canonical/sitemap/robots 절대 URL 기준
+- `SEO_STRICT_SITE_URL` (SEO 권장)
+  - `1`이면 `NEXT_PUBLIC_SITE_URL` 누락/오류 시 CI/빌드에서 즉시 실패
+  - 기본 `0` (개발환경 fallback 허용)
 
 옵션:
 
@@ -234,4 +252,5 @@ npm run deploy
 - 바이브 설계안(확장): `docs/vibe-recommendation-design.md`
 - 아키텍처/운영 가이드: `docs/architecture.md`
 - i18n 운영 가이드: `docs/i18n-guide.md`
+- 렌더링 전략(P0): `docs/rendering-strategy.md`
 - AI 작업 가이드: `CLAUDE.md`
