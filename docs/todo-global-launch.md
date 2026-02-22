@@ -51,10 +51,17 @@
 
 ### 3) Prerender/렌더링 전략 [Owner: global-growth-agent + frontend-agent + design-agent]
 
-- [ ] 정적 생성 가능한 경로 목록 정의
-- [ ] locale 경로별 prerender 전략 수립
+- [x] 정적 생성 가능한 경로 목록 정의
+- [x] locale 경로별 prerender 전략 수립
 - [x] 메타데이터(og/canonical/alternates) 자동 생성 구조 점검
-- [ ] 페이지별 로딩/오류 상태가 인덱싱 품질을 해치지 않는지 점검
+- [x] 페이지별 로딩/오류 상태가 인덱싱 품질을 해치지 않는지 점검
+
+현재 구현 상태 메모:
+- locale 4종(`ko`, `en`, `ja`, `zh-Hant`)은 `generateStaticParams + dynamicParams=false`로 SSG 고정
+- `/{locale}/onboarding|preferences|results|status`는 `dynamic=\"force-static\"` + 클라이언트 하이드레이션 전략 적용
+- 레거시 경로(`/onboarding`, `/preferences`, `/results`, `/status`, `/`)는 정적 redirect 경로로 정리
+- `status`는 `noindex` 유지, 결과 로딩/오류는 클라이언트 상태 처리 + status 라우트 fallback
+- 상세 문서: `docs/rendering-strategy.md`
 
 ### 4) Google Ads 도입 준비 [Owner: global-growth-agent]
 

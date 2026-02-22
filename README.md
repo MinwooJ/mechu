@@ -252,4 +252,5 @@ npm run deploy
 - 바이브 설계안(확장): `docs/vibe-recommendation-design.md`
 - 아키텍처/운영 가이드: `docs/architecture.md`
 - i18n 운영 가이드: `docs/i18n-guide.md`
+- 렌더링 전략(P0): `docs/rendering-strategy.md`
 - AI 작업 가이드: `CLAUDE.md`

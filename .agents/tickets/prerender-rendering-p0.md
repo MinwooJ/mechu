@@ -1,0 +1,32 @@
+[Ticket]
+- id: prerender-rendering-p0
+- lane: multi
+- owner-agent: orchestrator
+- goal: Establish and implement production-ready prerender/rendering strategy for locale routes on Next.js App Router + OpenNext Cloudflare while preserving map/recommendation behavior.
+- editable-paths:
+  - app/**
+  - lib/i18n/**
+  - docs/**
+  - .agents/**
+- non-goals:
+  - Recommendation algorithm changes
+  - Map provider behavior changes
+  - UI redesign beyond rendering/SEO-safe fallback states
+  - Ads setup
+- assumptions:
+  - Locale scope is fixed to `ko`, `en`, `ja`, `zh-Hant`
+  - Legacy non-locale routes remain compatibility entrypoints (redirected)
+  - `status` route remains noindex
+- clarification-questions:
+  - None (request doc fixed scope and user requested direct execution)
+- approval-status: approved
+- approval-note: User explicitly requested execution from `.agents/requests/prerender_rendering_request.md` with multi-agent workflow.
+- done-criteria:
+  - Static-eligible routes are explicitly defined and implemented
+  - Locale prerender strategy is documented with platform constraints (OpenNext/Cloudflare)
+  - Indexing quality checks for loading/error states are documented and reflected in route behavior
+  - `docs/todo-global-launch.md` P0 prerender items are updated
+- verification:
+  - .agents/scripts/run-quality-gate.sh multi
+- risks:
+  - OpenNext Cloudflare revalidation/caching behavior may vary by deployment configuration; strategy must avoid unsupported ISR assumptions.

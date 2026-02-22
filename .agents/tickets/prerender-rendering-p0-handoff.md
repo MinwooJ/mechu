@@ -1,0 +1,34 @@
+[Handoff]
+- agent: orchestrator
+- ticket-id: prerender-rendering-p0
+- changed-files:
+  - .agents/tickets/prerender-rendering-p0.md
+  - app/[locale]/layout.tsx
+  - app/[locale]/page.tsx
+  - app/[locale]/onboarding/page.tsx
+  - app/[locale]/preferences/page.tsx
+  - app/[locale]/results/page.tsx
+  - app/[locale]/status/page.tsx
+  - app/page.tsx
+  - app/onboarding/page.tsx
+  - app/onboarding/onboarding-client.tsx
+  - app/preferences/page.tsx
+  - app/preferences/preferences-client.tsx
+  - app/results/page.tsx
+  - app/results/results-client.tsx
+  - app/status/page.tsx
+  - app/status/status-client.tsx
+  - lib/i18n/static-params.ts
+  - docs/rendering-strategy.md
+  - docs/todo-global-launch.md
+  - README.md
+- summary: Implemented locale SSG prerender strategy with `generateStaticParams` and `dynamicParams=false`, converted legacy non-locale routes to static redirects, split client implementations from legacy route files, and documented Cloudflare/OpenNext rendering decisions and SEO indexing checks.
+- validations:
+  - .agents/scripts/run-quality-gate.sh multi (pass: tsc/build/cf:build)
+  - npm run test:e2e (manual run, pass: 31 passed, 1 skipped)
+  - build route classification verified: locale routes now `● (SSG)`
+  - manual check: `/en/onboarding` title/h1 present for normal UA and Googlebot UA
+- residual-risks:
+  - `.agents/scripts/run-quality-gate.sh` currently fails to auto-detect `test:e2e` script; e2e required manual execution in this run.
+  - ISR/revalidate is intentionally not introduced in P0; cache-backed revalidation strategy remains P1 scope.
+- next-owner: qa
