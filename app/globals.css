@@ -2126,6 +2126,7 @@ a {
     border: 0;
     border-radius: 0;
     touch-action: pan-x pan-y;
+    isolation: isolate;
   }
 
   .results .result-top {
