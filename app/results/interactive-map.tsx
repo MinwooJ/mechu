@@ -11,15 +11,13 @@ import type { RecommendationItem } from "@/lib/reco/types";
 
 type Position = { lat: number; lng: number };
 
-type SheetSnap = "collapsed" | "half" | "expanded";
-
 type Props = {
   origin: Position;
   items: RecommendationItem[];
   selectedPlaceId: string | null;
   mapFocusTarget: "selected" | "origin";
   focusNonce: number;
-  sheetSnap?: SheetSnap;
+  mobileBottomOffset?: number;
   locale: Locale;
   onSelect: (placeId: string) => void;
 };
@@ -62,26 +60,20 @@ function EnsureInteractive({ stamp }: { stamp: string }) {
   return null;
 }
 
-function sheetHeightPx(snap: SheetSnap): number {
-  if (snap === "collapsed") return 176;
-  if (snap === "half") return 372;
-  return 0;
-}
-
 function FocusTarget({
   origin,
   items,
   selectedPlaceId,
   mapFocusTarget,
   focusNonce,
-  sheetSnap = "collapsed",
+  mobileBottomOffset = 0,
 }: {
   origin: Position;
   items: RecommendationItem[];
   selectedPlaceId: string | null;
   mapFocusTarget: "selected" | "origin";
   focusNonce: number;
-  sheetSnap?: SheetSnap;
+  mobileBottomOffset?: number;
 }) {
   const map = useMap();
 
@@ -105,13 +97,11 @@ function FocusTarget({
       return;
     }
 
-    // On mobile, offset the marker into the visible area above the bottom sheet.
-    const sheetPx = sheetHeightPx(sheetSnap);
-    const upwardOffset = Math.round(sheetPx / 2);
+    const upwardOffset = Math.round(mobileBottomOffset / 2);
     const markerPoint = map.latLngToContainerPoint(targetLatLng);
     const adjustedCenter = map.containerPointToLatLng(L.point(markerPoint.x, markerPoint.y + upwardOffset));
     map.flyTo(adjustedCenter, nextZoom, { animate: true, duration: 0.35 });
-  }, [map, origin, items, selectedPlaceId, mapFocusTarget, focusNonce, sheetSnap]);
+  }, [map, origin, items, selectedPlaceId, mapFocusTarget, focusNonce, mobileBottomOffset]);
 
   return null;
 }
@@ -125,9 +115,12 @@ function originIcon(): L.DivIcon {
   });
 }
 
+const RANK_CLASSES = ["gold", "silver", "bronze"] as const;
+
 function itemIcon(rank: number, active: boolean): L.DivIcon {
+  const rankClass = RANK_CLASSES[rank - 1] ?? "";
   return L.divIcon({
-    className: `map-marker item${active ? " active" : ""}`,
+    className: `map-marker item ${rankClass}${active ? " active" : ""}`,
     html: `<span>${rank}</span>`,
     iconSize: [30, 30],
     iconAnchor: [15, 15],
@@ -140,7 +133,7 @@ export default function InteractiveMap({
   selectedPlaceId,
   mapFocusTarget,
   focusNonce,
-  sheetSnap,
+  mobileBottomOffset,
   locale,
   onSelect,
 }: Props) {
@@ -161,7 +154,7 @@ export default function InteractiveMap({
         selectedPlaceId={selectedPlaceId}
         mapFocusTarget={mapFocusTarget}
         focusNonce={focusNonce}
-        sheetSnap={sheetSnap}
+        mobileBottomOffset={mobileBottomOffset}
       />
 
       <Marker position={[origin.lat, origin.lng]} icon={originIcon()}>
@@ -180,7 +173,7 @@ export default function InteractiveMap({
           <Popup>
             <strong>{item.name}</strong>
             <br />
-            {formatDistance(item.distance_m, locale)} · ★{item.rating}
+            {formatDistance(item.distance_m, locale)}{item.rating != null && <> · ★{item.rating}</>}
           </Popup>
         </Marker>
       ))}

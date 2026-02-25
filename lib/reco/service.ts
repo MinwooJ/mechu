@@ -296,7 +296,7 @@ function buildReasons(candidate: Candidate, distScore: number, modeScore: number
   if (popularityScore >= 0.7) reasons.push("Popular now");
   if (candidate.open_now) reasons.push("Open now");
   if (vibe === "explore" && popularityScore < 0.45) reasons.push("Hidden gem pick");
-  if (candidate.rating >= 4.4) reasons.push("Highly rated");
+  if (candidate.rating != null && candidate.rating >= 4.4) reasons.push("Highly rated");
   return reasons.slice(0, 3);
 }
 
@@ -510,7 +510,7 @@ async function fetchKakaoCandidates(req: Required<RecommendationRequest>): Promi
       distance_m: Math.round(safeDistance),
       category: mapKakaoCategory(doc.category_name),
       price_level: 2,
-      rating: 4,
+      rating: undefined,
       review_count: undefined,
       // Kakao category search response does not provide reliable open/closed status.
       open_now: false,
@@ -524,6 +524,41 @@ async function fetchKakaoCandidates(req: Required<RecommendationRequest>): Promi
     return { items: [], state: "error" };
   }
   return { items: out, state: "ok" };
+}
+
+type KakaoPanel3Response = {
+  kakaomap_review?: {
+    score_set?: {
+      average_score?: number;
+      review_count?: number;
+    };
+  };
+};
+
+async function fetchKakaoRating(kakaoId: string): Promise<{ rating: number; reviewCount: number } | null> {
+  try {
+    const res = await fetchWithTimeout(
+      `https://place-api.map.kakao.com/places/panel3/${kakaoId}`,
+      {
+        headers: {
+          Referer: "https://place.map.kakao.com/",
+          pf: "PC",
+          "User-Agent": "Mozilla/5.0",
+        },
+      },
+      3000,
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as KakaoPanel3Response;
+    const score = data?.kakaomap_review?.score_set;
+    if (!score?.average_score) return null;
+    return {
+      rating: Math.round(score.average_score * 10) / 10,
+      reviewCount: score.review_count ?? 0,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function weightedPick<T>(items: T[], weights: number[], rnd: () => number): T {
@@ -636,7 +671,7 @@ export async function getRecommendations(input: RecommendationRequest): Promise<
 
   for (const c of filtered) {
     const distScore = Math.max(0, 1 - c.distance_m / req.radius_m);
-    const ratingScore = c.rating / 5;
+    const ratingScore = (c.rating ?? 4) / 5;
     const mScore = modeAffinity(req.mode, c.category);
     const typeFit = mScore >= 0.18 ? 1 : 0.35;
     const openScore = c.open_now ? 1 : 0;
@@ -681,6 +716,21 @@ export async function getRecommendations(input: RecommendationRequest): Promise<
         return { ...v, score: v.score * 0.9 };
       }
       return v;
+    });
+  }
+
+  // Enrich Kakao items with real ratings (display-only, non-blocking)
+  const kakaoItems = selected.filter((c) => c.place_id.startsWith("kakao_"));
+  if (kakaoItems.length > 0) {
+    const ratings = await Promise.all(
+      kakaoItems.map((c) => fetchKakaoRating(c.place_id.replace("kakao_", ""))),
+    );
+    kakaoItems.forEach((c, i) => {
+      const r = ratings[i];
+      if (r) {
+        c.rating = r.rating;
+        c.review_count = r.reviewCount;
+      }
     });
   }
 

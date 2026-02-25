@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
@@ -19,7 +19,6 @@ import type {
 
 type Position = { lat: number; lng: number };
 type MapProvider = "osm" | "kakao";
-type SheetSnap = "collapsed" | "half" | "expanded";
 type MapFocusTarget = "selected" | "origin";
 type GeocodeResponse = {
   ok: boolean;
@@ -63,6 +62,7 @@ const UNKNOWN_REASON_LOGGED = new Set<string>();
 const RESULTS_CACHE_KEY = "meal_reco_results_cache_v1";
 const RESULTS_CACHE_TTL_MS = 10 * 60 * 1000;
 const RESULTS_CACHE_MAX_ENTRIES = 8;
+const MOBILE_CARD_AREA_HEIGHT = 190;
 
 type ResultsCacheEntry = {
   savedAt: number;
@@ -181,24 +181,6 @@ function localizeReason(reason: string, t: (key: string) => string): string {
   return reason;
 }
 
-function rubberBand(offset: number, dimension: number): number {
-  const c = 0.55;
-  const abs = Math.abs(offset);
-  const result = (abs * dimension * c) / (dimension + c * abs);
-  return offset < 0 ? -result : result;
-}
-
-function getSafeAreaBottom(): number {
-  if (typeof document === "undefined") return 0;
-  const probe = document.createElement("div");
-  probe.style.cssText =
-    "position:fixed;bottom:0;padding-bottom:env(safe-area-inset-bottom);visibility:hidden;pointer-events:none";
-  document.body.appendChild(probe);
-  const val = parseFloat(getComputedStyle(probe).paddingBottom) || 0;
-  probe.remove();
-  return val;
-}
-
 export default function ResultsPage() {
   const router = useRouter();
   const locale = useLocale();
@@ -226,25 +208,13 @@ export default function ResultsPage() {
   const [locationLoading, setLocationLoading] = useState(false);
   const [geolocationLoading, setGeolocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
-  const [sheetSnap, setSheetSnap] = useState<SheetSnap>("collapsed");
   const [isMobileViewport, setIsMobileViewport] = useState<boolean>(() =>
     typeof window !== "undefined" ? window.matchMedia("(max-width: 980px)").matches : false,
   );
+  const [activeCardIndex, setActiveCardIndex] = useState(0);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const swipeTrackRef = useRef<HTMLDivElement | null>(null);
   const itemsRef = useRef<RecommendationItem[]>([]);
-  const dragStartYRef = useRef<number | null>(null);
-  const dragMovedRef = useRef(false);
-  const dragStartInStickyRef = useRef(false);
-  const suppressCardClickUntilRef = useRef(0);
-  const mobileCardsListRef = useRef<HTMLDivElement | null>(null);
-  const sheetRef = useRef<HTMLElement | null>(null);
-  const snapPointsRef = useRef({ collapsed: 0, half: 0, expanded: 0 });
-  const mapButtonMetricsRef = useRef({ safeBottom: 0, maxHeight: 0 });
-  const mapOriginBtnRef = useRef<HTMLButtonElement | null>(null);
-  const currentTranslateYRef = useRef(0);
-  const dragStartTranslateYRef = useRef(0);
-  const lastPointerYRef = useRef(0);
-  const lastPointerTimeRef = useRef(0);
-  const dragVelocityRef = useRef(0);
   const loadingMessages = useMemo(() => LOADING_MESSAGE_KEYS.map((key) => t(key)), [t]);
   const useKrLinks = countryCode === "KR";
   const modeLabel = flowMode === "dinner" ? t("mode.dinnerTag") : t("mode.lunchTag");
@@ -259,6 +229,56 @@ export default function ResultsPage() {
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
+
+  const scrollSwipeTrackToIndex = useCallback((idx: number) => {
+    const track = swipeTrackRef.current;
+    if (!track) return;
+    const card = track.children[idx] as HTMLElement | undefined;
+    if (card) {
+      card.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    }
+  }, []);
+
+  // Swipe scroll detection — detect which card is centered after scroll
+  useEffect(() => {
+    if (!isMobileViewport) return;
+    const track = swipeTrackRef.current;
+    if (!track) return;
+
+    let timer: ReturnType<typeof setTimeout>;
+    const onScroll = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const trackRect = track.getBoundingClientRect();
+        const centerX = trackRect.left + trackRect.width / 2;
+        let closest = 0;
+        let closestDist = Infinity;
+        for (let i = 0; i < track.children.length; i++) {
+          const child = track.children[i] as HTMLElement;
+          const childRect = child.getBoundingClientRect();
+          const childCenterX = childRect.left + childRect.width / 2;
+          const dist = Math.abs(childCenterX - centerX);
+          if (dist < closestDist) {
+            closestDist = dist;
+            closest = i;
+          }
+        }
+        setActiveCardIndex(closest);
+        const matchingItem = itemsRef.current[closest];
+        if (matchingItem) {
+          setSelectedPlaceId(matchingItem.place_id);
+          setMapFocusTarget("selected");
+          setFocusNonce((prev) => prev + 1);
+        }
+      }, 80);
+    };
+
+    track.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      clearTimeout(timer);
+      track.removeEventListener("scroll", onScroll);
+    };
+  }, [isMobileViewport, items]);
 
   const applyRecommendations = useCallback((recommendations: RecommendationItem[], preferredPlaceId?: string | null) => {
     const top3 = recommendations.slice(0, 3);
@@ -412,111 +432,12 @@ export default function ResultsPage() {
     return () => clearInterval(interval);
   }, [loading, loadingMessages, t]);
 
-  const computeSnapPoints = useCallback(() => {
-    const vh = window.innerHeight;
-    const maxH = vh - 48;
-    const safeBottom = getSafeAreaBottom();
-    mapButtonMetricsRef.current = { safeBottom, maxHeight: maxH };
-    snapPointsRef.current = {
-      expanded: 0,
-      half: Math.max(0, maxH - 372 - safeBottom),
-      collapsed: Math.max(0, maxH - 176 - safeBottom),
-    };
-  }, []);
-
-  const mapOriginBottomForY = useCallback((y: number): number => {
-    const { expanded, half, collapsed } = snapPointsRef.current;
-    const { safeBottom } = mapButtonMetricsRef.current;
-    const low = 186 + safeBottom;
-    const high = 382 + safeBottom;
-
-    if (y <= half) {
-      const range = Math.max(1, half - expanded);
-      const t = (half - y) / range;
-      return high - (high - low) * t;
-    }
-
-    const range = Math.max(1, collapsed - half);
-    const t = (y - half) / range;
-    return high - (high - low) * t;
-  }, []);
-
-  const syncMapOriginButton = useCallback(
-    (sheetY: number) => {
-      const btn = mapOriginBtnRef.current;
-      if (!btn) return;
-      if (!isMobileViewport) {
-        btn.style.bottom = "";
-        return;
-      }
-      btn.style.bottom = `${Math.round(mapOriginBottomForY(sheetY))}px`;
-    },
-    [isMobileViewport, mapOriginBottomForY],
-  );
-
-  const resolveSnapTarget = useCallback((currentY: number, velocity: number): SheetSnap => {
-    const { expanded, half, collapsed } = snapPointsRef.current;
-    const FLICK = 0.5;
-    if (Math.abs(velocity) > FLICK) {
-      if (velocity > 0) return currentY < half ? "half" : "collapsed";
-      return currentY > half ? "half" : "expanded";
-    }
-    const dE = Math.abs(currentY - expanded);
-    const dH = Math.abs(currentY - half);
-    const dC = Math.abs(currentY - collapsed);
-    if (dE <= dH && dE <= dC) return "expanded";
-    if (dH <= dC) return "half";
-    return "collapsed";
-  }, []);
-
-  const settleToSnap = useCallback((snap: SheetSnap) => {
-    const el = sheetRef.current;
-    if (!el) return;
-    const y = snapPointsRef.current[snap];
-    currentTranslateYRef.current = y;
-    el.classList.remove("dragging");
-    el.style.transform = `translateY(${y}px)`;
-    syncMapOriginButton(y);
-    setSheetSnap(snap);
-  }, [syncMapOriginButton]);
-
-  useEffect(() => {
-    if (!isMobileViewport) {
-      const el = sheetRef.current;
-      if (el) {
-        el.style.transform = "";
-        el.classList.remove("dragging");
-      }
-      syncMapOriginButton(0);
-      return;
-    }
-    computeSnapPoints();
-    const el = sheetRef.current;
-    if (el) {
-      const y = snapPointsRef.current[sheetSnap];
-      currentTranslateYRef.current = y;
-      el.style.transform = `translateY(${y}px)`;
-      syncMapOriginButton(y);
-    }
-    const onResize = () => {
-      computeSnapPoints();
-      const resizeEl = sheetRef.current;
-      if (!resizeEl) return;
-      const y = snapPointsRef.current[sheetSnap];
-      currentTranslateYRef.current = y;
-      resizeEl.classList.add("dragging");
-      resizeEl.style.transform = `translateY(${y}px)`;
-      syncMapOriginButton(y);
-      requestAnimationFrame(() => sheetRef.current?.classList.remove("dragging"));
-    };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [isMobileViewport, sheetSnap, computeSnapPoints, syncMapOriginButton]);
-
   const reroll = () => {
     setSelectedPlaceId(null);
     setMapFocusTarget("selected");
     setFocusNonce((prev) => prev + 1);
+    setActiveCardIndex(0);
+    setDetailOpen(false);
     void loadResults({ forceRefresh: true });
   };
 
@@ -541,6 +462,8 @@ export default function ResultsPage() {
     setSelectedPlaceId(null);
     setMapFocusTarget("selected");
     setFocusNonce((prev) => prev + 1);
+    setActiveCardIndex(0);
+    setDetailOpen(false);
     void loadResults({ forceRefresh: true });
   };
 
@@ -667,143 +590,28 @@ export default function ResultsPage() {
     setSelectedPlaceId(null);
     setMapFocusTarget("selected");
     setFocusNonce((prev) => prev + 1);
+    setActiveCardIndex(0);
+    setDetailOpen(false);
     void loadResults({ forceRefresh: true });
   };
 
-  const beginSheetDrag = (
-    e: ReactPointerEvent<HTMLElement>,
-    opts: { force?: boolean } = {},
-  ) => {
-    if (!isMobileViewport) return;
-    const targetEl = e.target as HTMLElement | null;
-    const interactiveAncestor = targetEl?.closest("a, button, input, textarea, select");
-    if (!opts.force && interactiveAncestor) return;
-    const isInSticky = Boolean(targetEl?.closest(".mobile-sheet-sticky"));
-
-    const panel = sheetRef.current ?? (e.currentTarget as HTMLElement);
-    if (!opts.force && sheetSnap === "expanded" && panel.scrollTop > 2) return;
-    const list = mobileCardsListRef.current;
-    if (!opts.force && sheetSnap === "expanded" && list && list.scrollTop > 2) return;
-    dragStartInStickyRef.current = opts.force || isInSticky;
-
-    dragStartYRef.current = e.clientY;
-    dragMovedRef.current = false;
-    dragStartTranslateYRef.current = currentTranslateYRef.current;
-    lastPointerYRef.current = e.clientY;
-    lastPointerTimeRef.current = e.timeStamp;
-    dragVelocityRef.current = 0;
-  };
-
-  const endSheetDrag = (e: ReactPointerEvent<HTMLElement>) => {
-    if (dragStartYRef.current === null) return;
-
-    const moved = dragMovedRef.current;
-    if (moved) {
-      const target = resolveSnapTarget(currentTranslateYRef.current, dragVelocityRef.current);
-      settleToSnap(target);
-      suppressCardClickUntilRef.current = Date.now() + 240;
-    } else if (dragStartInStickyRef.current) {
-      const next: SheetSnap =
-        sheetSnap === "collapsed" ? "half" : sheetSnap === "half" ? "expanded" : "half";
-      settleToSnap(next);
-    }
-
-    dragStartYRef.current = null;
-    dragMovedRef.current = false;
-    dragStartInStickyRef.current = false;
-    const panel = e.currentTarget as HTMLElement;
-    if (moved && panel.hasPointerCapture(e.pointerId)) {
-      panel.releasePointerCapture(e.pointerId);
-    }
-  };
-
-  const cancelSheetDrag = (e: ReactPointerEvent<HTMLElement>) => {
-    if (dragStartYRef.current === null) return;
-    settleToSnap(sheetSnap);
-    dragStartYRef.current = null;
-    dragMovedRef.current = false;
-    dragStartInStickyRef.current = false;
-    const panel = e.currentTarget as HTMLElement;
-    if (panel.hasPointerCapture(e.pointerId)) {
-      panel.releasePointerCapture(e.pointerId);
-    }
-  };
-
-  const onSheetPointerDown = (e: ReactPointerEvent<HTMLElement>) => {
-    beginSheetDrag(e);
-  };
-
-  const onSheetPointerMove = (e: ReactPointerEvent<HTMLElement>) => {
-    if (dragStartYRef.current === null) return;
-    const delta = e.clientY - dragStartYRef.current;
-    if (!dragMovedRef.current && Math.abs(delta) > 6) {
-      dragMovedRef.current = true;
-      const el = sheetRef.current;
-      if (el) el.classList.add("dragging");
-      const panel = e.currentTarget as HTMLElement;
-      if (!panel.hasPointerCapture(e.pointerId)) {
-        panel.setPointerCapture(e.pointerId);
-      }
-    }
-    if (dragMovedRef.current) {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const now = e.timeStamp;
-      const dt = now - lastPointerTimeRef.current;
-      if (dt > 0) {
-        dragVelocityRef.current = (e.clientY - lastPointerYRef.current) / dt;
-      }
-      lastPointerYRef.current = e.clientY;
-      lastPointerTimeRef.current = now;
-
-      let newY = dragStartTranslateYRef.current + delta;
-      const { expanded, collapsed } = snapPointsRef.current;
-      if (newY < expanded) {
-        newY = expanded + rubberBand(newY - expanded, window.innerHeight);
-      } else if (newY > collapsed) {
-        newY = collapsed + rubberBand(newY - collapsed, window.innerHeight);
-      }
-
-      const el = sheetRef.current;
-      if (el) {
-        el.style.transform = `translateY(${newY}px)`;
-        currentTranslateYRef.current = newY;
-        syncMapOriginButton(newY);
-      }
-    }
-  };
-
-  const onSheetPointerUp = (e: ReactPointerEvent<HTMLElement>) => {
-    endSheetDrag(e);
-  };
-
-  const onSheetPointerCancel = (e: ReactPointerEvent<HTMLElement>) => {
-    cancelSheetDrag(e);
-  };
-
-  const onGrabberPointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
-    beginSheetDrag(e, { force: true });
-  };
-
-  const onGrabberPointerMove = (e: ReactPointerEvent<HTMLButtonElement>) => {
-    onSheetPointerMove(e);
-  };
-
-  const onGrabberPointerUp = (e: ReactPointerEvent<HTMLButtonElement>) => {
-    onSheetPointerUp(e);
-  };
-
-  const onGrabberPointerCancel = (e: ReactPointerEvent<HTMLButtonElement>) => {
-    onSheetPointerCancel(e);
-  };
-
   const selectPlace = useCallback((placeId: string) => {
-    if (Date.now() < suppressCardClickUntilRef.current) return;
     setSelectedPlaceId(placeId);
     setMapFocusTarget("selected");
     setFocusNonce((prev) => prev + 1);
-    setSheetSnap((prev) => (prev === "expanded" ? "half" : prev));
+
+    // Sync activeCardIndex + scroll swipe track
+    const idx = itemsRef.current.findIndex((item) => item.place_id === placeId);
+    if (idx >= 0) {
+      setActiveCardIndex(idx);
+      const track = swipeTrackRef.current;
+      if (track) {
+        const card = track.children[idx] as HTMLElement | undefined;
+        if (card) {
+          card.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+        }
+      }
+    }
 
     const flowKey = buildResultsFlowKey(loadFlowState());
     if (flowKey && itemsRef.current.length > 0) {
@@ -818,33 +626,11 @@ export default function ResultsPage() {
     setFocusNonce((prev) => prev + 1);
   };
 
-  const compactMobileCards = isMobileViewport && sheetSnap === "half";
-  const expandedFitCards = isMobileViewport && sheetSnap === "expanded";
-  const showMobileCards = !isMobileViewport || sheetSnap !== "collapsed";
+  const detailItem = detailOpen ? (items[activeCardIndex] ?? null) : null;
 
   return (
-    <main className={`flow-page results results-sheet-${sheetSnap}`}>
+    <main className="flow-page results">
       <FlowHeader />
-
-      <header className="result-top section-shell">
-        <div className="result-heading">
-          <h1>{t("results.topPicks")}</h1>
-          <p className="result-subtitle">
-            {modeLabel} · {radiusLabel} · {vibeLabel}
-          </p>
-        </div>
-        <div className="result-actions-top">
-          <button className="result-action-btn secondary" onClick={openLocationEditor}>
-            {t("results.actionChangeLocation")}
-          </button>
-          <button className="result-action-btn secondary" onClick={openFilterEditor}>
-            {t("results.actionChangeFilters")}
-          </button>
-          <button className="result-action-btn primary" onClick={reroll} disabled={loading}>
-            {loading ? t("common.loading") : t("results.actionReroll")}
-          </button>
-        </div>
-      </header>
 
       <section className="result-layout section-shell">
         <article className="map-panel">
@@ -858,7 +644,7 @@ export default function ResultsPage() {
                     selectedPlaceId={selected?.place_id ?? null}
                     mapFocusTarget={mapFocusTarget}
                     focusNonce={focusNonce}
-                    sheetSnap={sheetSnap}
+                    mobileBottomOffset={isMobileViewport ? MOBILE_CARD_AREA_HEIGHT : 0}
                     locale={locale}
                     onSelect={selectPlace}
                     onLoadFail={handleKakaoLoadFail}
@@ -870,13 +656,12 @@ export default function ResultsPage() {
                     selectedPlaceId={selected?.place_id ?? null}
                     mapFocusTarget={mapFocusTarget}
                     focusNonce={focusNonce}
-                    sheetSnap={sheetSnap}
+                    mobileBottomOffset={isMobileViewport ? MOBILE_CARD_AREA_HEIGHT : 0}
                     locale={locale}
                     onSelect={selectPlace}
                   />
                 )}
                 <button
-                  ref={mapOriginBtnRef}
                   type="button"
                   className="map-origin-btn"
                   onClick={focusOrigin}
@@ -902,28 +687,15 @@ export default function ResultsPage() {
           )}
         </article>
 
-        <article
-          ref={sheetRef}
-          className={`cards-panel mobile-sheet sheet-${sheetSnap}`}
-          onPointerDown={isMobileViewport ? onSheetPointerDown : undefined}
-          onPointerMove={isMobileViewport ? onSheetPointerMove : undefined}
-          onPointerUp={isMobileViewport ? onSheetPointerUp : undefined}
-          onPointerCancel={isMobileViewport ? onSheetPointerCancel : undefined}
-        >
-          <div className="mobile-sheet-sticky">
-            <button
-              type="button"
-              className="sheet-grabber"
-              onPointerDown={onGrabberPointerDown}
-              onPointerMove={onGrabberPointerMove}
-              onPointerUp={onGrabberPointerUp}
-              onPointerCancel={onGrabberPointerCancel}
-              aria-label={t("results.sheetGrabberAria")}
-            />
-            <div className="mobile-sheet-head">
-              <h2>{t("results.topPicks")}</h2>
-              <p>{modeLabel} · {radiusLabel} · {vibeLabel}</p>
-              <div className="mobile-sheet-actions">
+        {/* Desktop: floating panel */}
+        {!isMobileViewport && (
+          <article className="desktop-float-panel">
+            <div className="desktop-panel-header">
+              <div>
+                <h2>{t("results.topPicks")}</h2>
+                <p className="result-subtitle">{modeLabel} · {radiusLabel} · {vibeLabel}</p>
+              </div>
+              <div className="desktop-panel-actions">
                 <button className="result-action-btn secondary" onClick={openLocationEditor}>
                   {t("results.actionChangeLocation")}
                 </button>
@@ -935,83 +707,130 @@ export default function ResultsPage() {
                 </button>
               </div>
             </div>
-          </div>
-          {showMobileCards ? (
-            <div
-              ref={mobileCardsListRef}
-              className={`mobile-cards-list ${compactMobileCards ? "compact" : expandedFitCards ? "expanded-fit" : "full"}`}
-            >
+            <div className="desktop-cards-list">
               {items.map((item, idx) => (
                 <article
                   key={item.place_id}
-                  className={`result-card ${compactMobileCards ? "compact" : ""} ${expandedFitCards ? "expanded-fit" : ""} ${selected?.place_id === item.place_id ? "active" : ""}`}
+                  className={`result-card ${selected?.place_id === item.place_id ? "active" : ""}`}
                   onClick={() => selectPlace(item.place_id)}
                 >
                   <div className="title-row">
                     <h3>
                       {item.name}
-                      {compactMobileCards ? null : <small>{item.address || t("results.cardNoAddress")}</small>}
+                      <small>{item.address || t("results.cardNoAddress")}</small>
                     </h3>
                     <span className="chip-rank">{t("results.cardMatch", { rank: idx + 1 })}</span>
                   </div>
-
-                  {compactMobileCards ? (
-                    <div className="result-tags compact-tags">
-                      <p className="meta">{item.raw_category || item.category || t("results.cardFallbackCategory")}</p>
-                      <p className="meta">{formatDistance(item.distance_m, locale)}</p>
-                      <p className="meta">★{item.rating}</p>
-                    </div>
-                  ) : expandedFitCards ? (
-                    <>
-                      <p className="expanded-meta-line">
-                        {(item.raw_category || item.category || t("results.cardFallbackCategory")) +
-                          " · " +
-                          formatDistance(item.distance_m, locale) +
-                          " · ★" +
-                          item.rating}
-                      </p>
-                      <p className="reason">{item.why.map((reason) => localizeReason(reason, t)).join(" · ") || t("results.cardReasonPending")}</p>
-                      <div className="btn-row expanded-fit-btn-row">
-                        {useKrLinks ? (
-                          <>
-                            {kakaoPlaceIdMapLink(item) ? (
-                              <a className="btn-link" href={kakaoPlaceIdMapLink(item) ?? "#"} target="_blank" rel="noreferrer">{t("results.linkKakao")}</a>
-                            ) : null}
-                            <a className="btn-ghost" href={naverSearchLink(item)} target="_blank" rel="noreferrer">{t("results.linkNaver")}</a>
-                          </>
-                        ) : (
-                          <a className="btn-link" href={googlePlaceLink(item)} target="_blank" rel="noreferrer">{t("results.linkMap")}</a>
-                        )}
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="result-tags">
-                        <p className="meta">{formatDistance(item.distance_m, locale)}</p>
-                        <p className="meta">{"₩".repeat(item.price_level) || t("results.priceFallback")}</p>
-                        <p className="meta">★{item.rating}</p>
-                      </div>
-                      <p className="reason"><span className="category-chip">{item.raw_category || item.category || t("results.cardFallbackCategory")}</span></p>
-                      <p className="reason">{item.why.map((reason) => localizeReason(reason, t)).join(" · ") || t("results.cardReasonPending")}</p>
-                      <div className="btn-row">
-                        {useKrLinks ? (
-                          <>
-                            {kakaoPlaceIdMapLink(item) ? (
-                              <a className="btn-link" href={kakaoPlaceIdMapLink(item) ?? "#"} target="_blank" rel="noreferrer">{t("results.linkKakaoLong")}</a>
-                            ) : null}
-                            <a className="btn-ghost" href={naverSearchLink(item)} target="_blank" rel="noreferrer">{t("results.linkNaverLong")}</a>
-                          </>
-                        ) : (
-                          <a className="btn-link" href={googlePlaceLink(item)} target="_blank" rel="noreferrer">{t("results.linkGoogleLong")}</a>
-                        )}
-                      </div>
-                    </>
-                  )}
+                  <div className="result-tags">
+                    <p className="meta">{formatDistance(item.distance_m, locale)}</p>
+                    <p className="meta">{"₩".repeat(item.price_level) || t("results.priceFallback")}</p>
+                    {item.rating != null && <p className="meta">★{item.rating}</p>}
+                  </div>
+                  <p className="reason"><span className="category-chip">{item.raw_category || item.category || t("results.cardFallbackCategory")}</span></p>
+                  <p className="reason">{item.why.map((reason) => localizeReason(reason, t)).join(" · ") || t("results.cardReasonPending")}</p>
+                  <div className="btn-row">
+                    {useKrLinks ? (
+                      <>
+                        {kakaoPlaceIdMapLink(item) ? (
+                          <a className="btn-link" href={kakaoPlaceIdMapLink(item) ?? "#"} target="_blank" rel="noreferrer">{t("results.linkKakaoLong")}</a>
+                        ) : null}
+                        <a className="btn-ghost" href={naverSearchLink(item)} target="_blank" rel="noreferrer">{t("results.linkNaverLong")}</a>
+                      </>
+                    ) : (
+                      <a className="btn-link" href={googlePlaceLink(item)} target="_blank" rel="noreferrer">{t("results.linkGoogleLong")}</a>
+                    )}
+                  </div>
                 </article>
               ))}
             </div>
-          ) : null}
-        </article>
+          </article>
+        )}
+
+        {/* Mobile: floating action buttons */}
+        {isMobileViewport && (
+          <div className="mobile-float-actions">
+            <button className="result-action-btn secondary" onClick={openLocationEditor}>
+              {t("results.actionChangeLocation")}
+            </button>
+            <button className="result-action-btn secondary" onClick={openFilterEditor}>
+              {t("results.actionChangeFilters")}
+            </button>
+            <button className="result-action-btn primary" onClick={reroll} disabled={loading}>
+              {loading ? t("common.loading") : t("results.actionReroll")}
+            </button>
+          </div>
+        )}
+
+        {/* Mobile: swipe card area */}
+        {isMobileViewport && (
+          <div className="swipe-card-container">
+            <div className="swipe-track" ref={swipeTrackRef}>
+              {items.map((item, idx) => (
+                <div
+                  key={item.place_id}
+                  className={`swipe-card ${activeCardIndex === idx ? "active" : ""}`}
+                  onClick={() => setDetailOpen(true)}
+                >
+                  <span className="swipe-card-rank">{idx + 1}</span>
+                  <div className="swipe-card-info">
+                    <strong>{item.name}</strong>
+                    <span>
+                      {(item.raw_category || item.category || t("results.cardFallbackCategory")) +
+                        " · " +
+                        formatDistance(item.distance_m, locale) +
+                        (item.rating != null ? " · ★" + item.rating : "")}
+                    </span>
+                  </div>
+                  <span className="swipe-card-chevron" aria-hidden="true">›</span>
+                </div>
+              ))}
+            </div>
+            <div className="swipe-dots">
+              {items.map((_, idx) => (
+                <span
+                  key={idx}
+                  className={`swipe-dot ${activeCardIndex === idx ? "active" : ""}`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Mobile: detail overlay */}
+        {isMobileViewport && detailOpen && detailItem && (
+          <div className="detail-overlay-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setDetailOpen(false); }}>
+            <div className="detail-overlay">
+              <div className="detail-overlay-content">
+                <div className="title-row">
+                  <h3>
+                    {detailItem.name}
+                    <small>{detailItem.address || t("results.cardNoAddress")}</small>
+                  </h3>
+                  <span className="chip-rank">{t("results.cardMatch", { rank: activeCardIndex + 1 })}</span>
+                </div>
+                <div className="result-tags">
+                  <p className="meta">{formatDistance(detailItem.distance_m, locale)}</p>
+                  <p className="meta">{"₩".repeat(detailItem.price_level) || t("results.priceFallback")}</p>
+                  {detailItem.rating != null && <p className="meta">★{detailItem.rating}</p>}
+                </div>
+                <p className="reason"><span className="category-chip">{detailItem.raw_category || detailItem.category || t("results.cardFallbackCategory")}</span></p>
+                <p className="reason">{detailItem.why.map((reason) => localizeReason(reason, t)).join(" · ") || t("results.cardReasonPending")}</p>
+                <div className="btn-row">
+                  {useKrLinks ? (
+                    <>
+                      {kakaoPlaceIdMapLink(detailItem) ? (
+                        <a className="btn-link" href={kakaoPlaceIdMapLink(detailItem) ?? "#"} target="_blank" rel="noreferrer">{t("results.linkKakaoLong")}</a>
+                      ) : null}
+                      <a className="btn-ghost" href={naverSearchLink(detailItem)} target="_blank" rel="noreferrer">{t("results.linkNaverLong")}</a>
+                    </>
+                  ) : (
+                    <a className="btn-link" href={googlePlaceLink(detailItem)} target="_blank" rel="noreferrer">{t("results.linkGoogleLong")}</a>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {filterOpen ? (

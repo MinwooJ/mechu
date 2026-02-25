@@ -28,7 +28,7 @@ export type RecommendationItem = {
   distance_m: number;
   category: string;
   price_level: number;
-  rating: number;
+  rating?: number;
   review_count?: number;
   open_now: boolean;
   why: string[];
