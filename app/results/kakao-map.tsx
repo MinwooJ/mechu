@@ -8,15 +8,13 @@ import type { RecommendationItem } from "@/lib/reco/types";
 
 type Position = { lat: number; lng: number };
 
-type SheetSnap = "collapsed" | "half" | "expanded";
-
 type Props = {
   origin: Position;
   items: RecommendationItem[];
   selectedPlaceId: string | null;
   mapFocusTarget: "selected" | "origin";
   focusNonce: number;
-  sheetSnap?: SheetSnap;
+  mobileBottomOffset?: number;
   locale: Locale;
   onSelect: (placeId: string) => void;
   onLoadFail?: () => void;
@@ -24,8 +22,18 @@ type Props = {
 
 const KAKAO_KEY = process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY ?? "";
 
-function pinSvg(color: string): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="17" r="12" fill="${color}" stroke="#fff" stroke-width="3"/></svg>`;
+const RANK_COLORS: [string, string, string] = ["#FFD700", "#A8B4C0", "#CD7F32"];
+const RANK_STROKES: [string, string, string] = ["#B8960A", "#6B7680", "#8B5A1E"];
+
+function originPinSvg(): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="17" r="12" fill="#2d87ff" stroke="#fff" stroke-width="3"/><text x="17" y="22" text-anchor="middle" font-size="14" font-weight="900" fill="#fff" font-family="sans-serif">M</text></svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+function rankPinSvg(rank: number): string {
+  const fill = RANK_COLORS[rank - 1] ?? "#f48c25";
+  const stroke = RANK_STROKES[rank - 1] ?? "#fff";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="17" r="12" fill="${fill}" stroke="${stroke}" stroke-width="2.5"/><text x="17" y="22" text-anchor="middle" font-size="14" font-weight="900" fill="#1e120a" font-family="sans-serif">${rank}</text></svg>`;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
@@ -53,19 +61,13 @@ function loadKakaoSdk(): Promise<void> {
   });
 }
 
-function sheetHeightPx(snap?: SheetSnap): number {
-  if (snap === "half") return 372;
-  if (snap === "collapsed") return 176;
-  return 0;
-}
-
 export default function KakaoMap({
   origin,
   items,
   selectedPlaceId,
   mapFocusTarget,
   focusNonce,
-  sheetSnap,
+  mobileBottomOffset = 0,
   locale,
   onSelect,
   onLoadFail,
@@ -81,13 +83,6 @@ export default function KakaoMap({
     markerCleanupsRef.current = [];
   }, []);
 
-  const setFocusCenter = useCallback((map: unknown, target: unknown, upwardOffsetPx: number) => {
-    (map as unknown as { setCenter?: (latLng: unknown) => void }).setCenter?.(target);
-    if (upwardOffsetPx) {
-      (map as unknown as { panBy?: (x: number, y: number) => void }).panBy?.(0, upwardOffsetPx);
-    }
-  }, []);
-
   const focusMapTarget = useCallback(
     (map: unknown, bounds: unknown) => {
       const { kakao } = window;
@@ -95,15 +90,19 @@ export default function KakaoMap({
       const selectedLatLng = selectedItem ? new kakao.maps.LatLng(selectedItem.lat, selectedItem.lng) : null;
       const focusLatLng = mapFocusTarget === "origin" ? new kakao.maps.LatLng(origin.lat, origin.lng) : selectedLatLng;
       const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 980px)").matches;
-      const upwardOffsetPx = isMobile ? Math.round(sheetHeightPx(sheetSnap) / 2) : 0;
+      const upwardOffsetPx = isMobile ? Math.round(mobileBottomOffset / 2) : 0;
 
       if (focusLatLng) {
-        setFocusCenter(map, focusLatLng, upwardOffsetPx);
+        // Use panTo for smooth animated transition
+        (map as unknown as { panTo?: (latLng: unknown) => void }).panTo?.(focusLatLng);
+        if (upwardOffsetPx) {
+          (map as unknown as { panBy?: (x: number, y: number) => void }).panBy?.(0, upwardOffsetPx);
+        }
       } else {
         (map as unknown as { setBounds?: (nextBounds: unknown) => void }).setBounds?.(bounds);
       }
     },
-    [items, mapFocusTarget, origin.lat, origin.lng, selectedPlaceId, setFocusCenter, sheetSnap],
+    [items, mapFocusTarget, origin.lat, origin.lng, selectedPlaceId, mobileBottomOffset],
   );
 
   useEffect(() => {
@@ -159,13 +158,13 @@ export default function KakaoMap({
       map,
       position: center,
       title: translate(locale, "results.location.current"),
-      image: new kakao.maps.MarkerImage(pinSvg("#2d87ff"), new kakao.maps.Size(34, 34), {
+      image: new kakao.maps.MarkerImage(originPinSvg(), new kakao.maps.Size(34, 34), {
         offset: new kakao.maps.Point(17, 17),
       }),
     });
     markerCleanupsRef.current.push(() => originMarker.setMap(null));
 
-    items.forEach((item) => {
+    items.forEach((item, idx) => {
       const position = new kakao.maps.LatLng(item.lat, item.lng);
       bounds.extend(position);
 
@@ -175,7 +174,7 @@ export default function KakaoMap({
         title: item.name,
         clickable: true,
         image: new kakao.maps.MarkerImage(
-          pinSvg(item.place_id === selectedPlaceId ? "#ffb25f" : "#f48c25"),
+          rankPinSvg(idx + 1),
           new kakao.maps.Size(34, 34),
           { offset: new kakao.maps.Point(17, 17) },
         ),
